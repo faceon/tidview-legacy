@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Tidview",
+  "version": "0.0.1",
+  "description": "Market tides, made visible - Chrome extension for Polymarket portfolio tracking",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Toggle Tidview"
+  },
+  "permissions": ["storage", "alarms"],
+  "host_permissions": ["https://data-api.polymarket.com/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "author": "faceon"
+}
