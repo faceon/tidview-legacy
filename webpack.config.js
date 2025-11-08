@@ -1,12 +1,17 @@
 const path = require("path");
 const CopyPlugin = require("copy-webpack-plugin");
 
+const litSuppressor = path.resolve(
+  __dirname,
+  "src/common/lit-dev-warn-suppressor.js",
+);
+
 module.exports = {
   mode: "production",
   devtool: "source-map",
   entry: {
     background: "./src/background/background.js",
-    popup: "./src/popup/popup.js",
+    popup: [litSuppressor, "./src/popup/popup.js"],
   },
   output: {
     path: path.resolve(__dirname, "dist"),
