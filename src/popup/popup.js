@@ -1,6 +1,13 @@
 import { LitElement, html, css } from "lit";
+import { repeat } from "lit/directives/repeat.js";
 
 const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 class TidviewPopup extends LitElement {
   static styles = css`
@@ -65,6 +72,153 @@ class TidviewPopup extends LitElement {
       font-size: 14px;
     }
 
+    .portfolio {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid #eee;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .portfolio-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .portfolio-header span {
+      font-size: 12px;
+      font-weight: 400;
+      color: #666;
+    }
+
+    .portfolio-summary {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      border: 1px solid #f1f1f1;
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #fafafa;
+    }
+
+    .summary-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 12px;
+      color: #555;
+    }
+
+    .summary-value {
+      font-size: 16px;
+      font-weight: 600;
+      color: #111;
+    }
+
+    .summary-pnl {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .summary-pnl span {
+      font-size: 12px;
+      font-weight: 400;
+      margin-left: 4px;
+    }
+
+    .positions-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+
+    .position-row {
+      display: flex;
+      gap: 12px;
+      padding: 12px 0;
+      border-top: 1px solid #f2f2f2;
+    }
+
+    .position-row:first-child {
+      border-top: none;
+      padding-top: 0;
+    }
+
+    .position-thumb {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: #f4f4f4;
+    }
+
+    .position-thumb.placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #777;
+    }
+
+    .position-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .position-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #111;
+      margin: 0;
+    }
+
+    .position-subtitle {
+      font-size: 11px;
+      color: #666;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .position-stats {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+    }
+
+    .position-stat-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111;
+    }
+
+    .position-stat-pnl {
+      font-size: 11px;
+    }
+
+    .positive {
+      color: #107c41;
+    }
+
+    .negative {
+      color: #b00020;
+    }
+
+    .neutral {
+      color: #444;
+    }
+
     .meta {
       font-size: 12px;
       color: #666;
@@ -85,6 +239,10 @@ class TidviewPopup extends LitElement {
     lastError: { type: String },
     statusMessage: { type: String },
     isBusy: { type: Boolean },
+    positions: { type: Array },
+    positionsLoading: { type: Boolean },
+    positionsUpdatedAt: { type: Number },
+    positionsError: { type: String },
   };
 
   constructor() {
@@ -95,6 +253,10 @@ class TidviewPopup extends LitElement {
     this.lastError = "";
     this.statusMessage = "";
     this.isBusy = false;
+    this.positions = [];
+    this.positionsLoading = false;
+    this.positionsUpdatedAt = null;
+    this.positionsError = "";
   }
 
   connectedCallback() {
@@ -116,6 +278,10 @@ class TidviewPopup extends LitElement {
       if (this.lastUpdated) {
         this.statusMessage = `Last updated: ${new Date(this.lastUpdated).toLocaleString()}`;
       }
+
+      if (this.address && ADDRESS_REGEX.test(this.address)) {
+        await this.loadPositions({ address: this.address, silent: true });
+      }
     } catch (error) {
       console.error("Failed to load popup status", error);
       this.lastError = "Unable to load current status.";
@@ -136,16 +302,25 @@ class TidviewPopup extends LitElement {
     const trimmed = this.address.trim();
     if (!ADDRESS_REGEX.test(trimmed)) {
       this.lastError = "Please enter a valid 0x address.";
+      this.positionsError = "";
       this.statusMessage = "";
       return;
     }
 
     this.isBusy = true;
     this.lastError = "";
+    this.positionsError = "";
     this.statusMessage = "Saved. Refreshing...";
     try {
       await chrome.storage.sync.set({ address: trimmed });
-      await this.refreshBalance({ recordTimestamp: true });
+      this.address = trimmed;
+      const [badgeOk] = await Promise.all([
+        this.refreshBalance({ recordTimestamp: true }),
+        this.loadPositions({ address: trimmed }),
+      ]);
+      if (badgeOk) {
+        this.statusMessage = `Refreshed at ${new Date().toLocaleString()}`;
+      }
     } catch (error) {
       console.error("Failed to save address", error);
       this.lastError = error?.message || "Failed to save address.";
@@ -156,11 +331,27 @@ class TidviewPopup extends LitElement {
   }
 
   async handleRefresh() {
+    const trimmed = this.address.trim();
+    if (!ADDRESS_REGEX.test(trimmed)) {
+      this.lastError = "Please enter a valid 0x address.";
+      this.positionsError = "";
+      this.statusMessage = "";
+      return;
+    }
+
     this.isBusy = true;
     this.lastError = "";
+    this.positionsError = "";
     this.statusMessage = "Refreshing...";
     try {
-      await this.refreshBalance({ recordTimestamp: true });
+      this.address = trimmed;
+      const [badgeOk] = await Promise.all([
+        this.refreshBalance({ recordTimestamp: true }),
+        this.loadPositions({ address: trimmed }),
+      ]);
+      if (badgeOk) {
+        this.statusMessage = `Refreshed at ${new Date().toLocaleString()}`;
+      }
     } catch (error) {
       console.error("Failed to refresh balance", error);
       this.lastError = error?.message || "Failed to refresh balance.";
@@ -179,6 +370,7 @@ class TidviewPopup extends LitElement {
         this.statusMessage = `Updated: ${new Date(this.lastUpdated).toLocaleString()}`;
       }
       this.lastError = "";
+      return true;
     } else {
       this.lastError = res?.error || "Unknown error";
       if (!recordTimestamp && this.lastUpdated) {
@@ -186,10 +378,228 @@ class TidviewPopup extends LitElement {
       } else {
         this.statusMessage = "";
       }
+      return false;
     }
   }
 
+  async loadPositions({ address = this.address, silent = false } = {}) {
+    const trimmed = address?.trim();
+
+    if (!trimmed) {
+      if (!silent) {
+        this.positions = [];
+        this.positionsUpdatedAt = null;
+        this.positionsError = "Please enter a valid 0x address.";
+        this.statusMessage = "";
+      }
+      return 0;
+    }
+
+    if (!ADDRESS_REGEX.test(trimmed)) {
+      if (!silent) {
+        this.positions = [];
+        this.positionsUpdatedAt = null;
+        this.positionsError = "Please enter a valid 0x address.";
+        this.statusMessage = "";
+      }
+      return 0;
+    }
+
+    this.positionsLoading = true;
+
+    try {
+      const url = `https://data-api.polymarket.com/positions?user=${encodeURIComponent(
+        trimmed,
+      )}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(
+          `Positions request failed with HTTP ${response.status}`,
+        );
+      }
+
+      const data = await response.json();
+      if (!Array.isArray(data)) {
+        throw new Error("Unexpected positions response format");
+      }
+
+      const normalized = data.map((entry) => this.normalizePosition(entry));
+      normalized.sort((a, b) => (b.currentValue ?? 0) - (a.currentValue ?? 0));
+
+      this.positions = normalized;
+      this.positionsUpdatedAt = Date.now();
+      this.positionsError = "";
+      return normalized.length;
+    } catch (error) {
+      console.error("Failed to load positions", error);
+      this.positions = [];
+      this.positionsUpdatedAt = null;
+      if (!silent) {
+        this.positionsError = error?.message || "Failed to load positions.";
+        this.statusMessage = "";
+      }
+      if (!silent) {
+        throw error;
+      }
+      return 0;
+    } finally {
+      this.positionsLoading = false;
+    }
+  }
+
+  normalizePosition(raw) {
+    const id =
+      raw?.asset ||
+      (raw?.slug && raw?.outcome
+        ? `${raw.slug}-${raw.outcome}`
+        : raw?.conditionId ||
+          raw?.title ||
+          `pos-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+
+    return {
+      id,
+      title: raw?.title || raw?.slug || "Unnamed market",
+      outcome: raw?.outcome || "",
+      currentValue: this.parseNumber(raw?.currentValue),
+      cashPnl: this.parseNumber(raw?.cashPnl),
+      percentPnl: this.parseNumber(raw?.percentPnl),
+      size: this.parseNumber(raw?.size),
+      avgPrice: this.parseNumber(raw?.avgPrice),
+      curPrice: this.parseNumber(raw?.curPrice),
+      endDate: raw?.endDate || "",
+      icon: raw?.icon || "",
+      initialValue: this.parseNumber(raw?.initialValue),
+      realizedPnl: this.parseNumber(raw?.realizedPnl),
+      slug: raw?.slug || "",
+    };
+  }
+
+  formatCurrency(value) {
+    const num = this.parseNumber(value);
+    if (num == null) return "—";
+    return currencyFormatter.format(num);
+  }
+
+  formatSignedCurrency(value) {
+    const num = this.parseNumber(value);
+    if (num == null) return "—";
+    const formatted = currencyFormatter.format(Math.abs(num));
+    return num >= 0 ? `+${formatted}` : `-${formatted}`;
+  }
+
+  formatPercent(value, { digits = 1 } = {}) {
+    const num = this.parseNumber(value);
+    if (num == null) return "—";
+    const formatted = num.toFixed(digits);
+    return num >= 0 ? `+${formatted}%` : `${formatted}%`;
+  }
+
+  formatNumber(value, options = {}) {
+    const num = this.parseNumber(value);
+    if (num == null) return "—";
+    const formatter = new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+      ...options,
+    });
+    return formatter.format(num);
+  }
+
+  formatDate(value) {
+    if (!value) return "No end date";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "No end date";
+    return date.toLocaleDateString();
+  }
+
+  trendClass(value) {
+    const num = this.parseNumber(value);
+    if (num == null || num === 0) return "neutral";
+    return num > 0 ? "positive" : "negative";
+  }
+
+  renderPosition(position) {
+    const avgPriceText =
+      position.avgPrice != null
+        ? `@ ${this.formatNumber(position.avgPrice, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 3,
+          })}`
+        : "";
+    const curPriceText =
+      position.curPrice != null
+        ? `→ ${this.formatNumber(position.curPrice, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 3,
+          })}`
+        : "";
+    const sizeText =
+      position.size != null ? `Size ${this.formatNumber(position.size)}` : "";
+
+    const subtitleParts = [
+      position.outcome,
+      sizeText,
+      avgPriceText,
+      curPriceText,
+    ].filter(Boolean);
+
+    return html`
+      <li class="position-row">
+        ${position.icon
+          ? html`<img
+              class="position-thumb"
+              src=${position.icon}
+              alt=""
+              loading="lazy"
+            />`
+          : html`<div class="position-thumb placeholder">
+              ${position.outcome?.[0] || "?"}
+            </div>`}
+        <div class="position-content">
+          <div class="position-title">${position.title}</div>
+          ${subtitleParts.length
+            ? html`<div class="position-subtitle">
+                ${subtitleParts.map((part) => html`<span>${part}</span>`)}
+              </div>`
+            : ""}
+          <div class="position-subtitle">
+            ${this.formatDate(position.endDate)}
+          </div>
+        </div>
+        <div class="position-stats">
+          <div class="position-stat-value">
+            ${this.formatCurrency(position.currentValue)}
+          </div>
+          <div class="position-stat-pnl ${this.trendClass(position.cashPnl)}">
+            ${this.formatSignedCurrency(position.cashPnl)}
+            ${position.percentPnl != null
+              ? html`<span>(${this.formatPercent(position.percentPnl)})</span>`
+              : ""}
+          </div>
+        </div>
+      </li>
+    `;
+  }
+
   render() {
+    const totalCurrentValue = this.positions.reduce(
+      (sum, pos) => sum + (this.parseNumber(pos.currentValue) ?? 0),
+      0,
+    );
+    const totalCashPnl = this.positions.reduce(
+      (sum, pos) => sum + (this.parseNumber(pos.cashPnl) ?? 0),
+      0,
+    );
+    const totalInitialValue = this.positions.reduce(
+      (sum, pos) => sum + (this.parseNumber(pos.initialValue) ?? 0),
+      0,
+    );
+    const totalPercent =
+      totalInitialValue > 0 ? (totalCashPnl / totalInitialValue) * 100 : null;
+
+    const errorMessage = this.lastError || this.positionsError;
+
     return html`
       <h1>Tidview</h1>
       <label for="address">Your 0x address</label>
@@ -218,10 +628,57 @@ class TidviewPopup extends LitElement {
             Latest value: $${Number(this.lastValue).toLocaleString()}
           </div>`
         : ""}
+      ${this.positions.length || this.positionsLoading
+        ? html`
+            <section class="portfolio">
+              <div class="portfolio-header">
+                <span>Portfolio</span>
+                <span>${this.positions.length} positions</span>
+              </div>
+              <div class="portfolio-summary">
+                <div class="summary-block">
+                  <span>Current Value</span>
+                  <span class="summary-value">
+                    ${this.formatCurrency(totalCurrentValue)}
+                  </span>
+                </div>
+                <div class="summary-block">
+                  <span>Total PnL</span>
+                  <span class="summary-pnl ${this.trendClass(totalCashPnl)}">
+                    ${this.formatSignedCurrency(totalCashPnl)}
+                    ${totalPercent != null
+                      ? html`<span>(${this.formatPercent(totalPercent)})</span>`
+                      : ""}
+                  </span>
+                </div>
+              </div>
+              ${this.positionsLoading
+                ? html`<div class="meta">Loading positions...</div>`
+                : ""}
+              ${!this.positionsLoading && this.positions.length === 0
+                ? html`<div class="meta">
+                    No positions found for this address.
+                  </div>`
+                : html`<ul class="positions-list">
+                    ${repeat(
+                      this.positions,
+                      (pos) => pos.id,
+                      (pos) => this.renderPosition(pos),
+                    )}
+                  </ul>`}
+            </section>
+          `
+        : ""}
       ${this.statusMessage
         ? html`<div class="meta">${this.statusMessage}</div>`
         : ""}
-      ${this.lastError ? html`<div class="error">${this.lastError}</div>` : ""}
+      ${this.positionsUpdatedAt
+        ? html`<div class="meta">
+            Positions refreshed:
+            ${new Date(this.positionsUpdatedAt).toLocaleString()}
+          </div>`
+        : ""}
+      ${errorMessage ? html`<div class="error">${errorMessage}</div>` : ""}
     `;
   }
 }
