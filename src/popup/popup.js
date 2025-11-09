@@ -1,14 +1,9 @@
 import { LitElement, html, css } from "lit";
-import { repeat } from "lit/directives/repeat.js";
+import "./components/positions-panel.js";
+import "./components/history-panel.js";
+import { parseNumber } from "./components/format.js";
 
 const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
 const HISTORY_PAGE_SIZE = 5;
 
 class TidviewPopup extends LitElement {
@@ -419,6 +414,7 @@ class TidviewPopup extends LitElement {
     this.tradesError = "";
     this.activeTab = "positions";
     this.historyPage = 1;
+    this.boundOpenMarket = this.openMarket.bind(this);
   }
 
   connectedCallback() {
@@ -433,7 +429,7 @@ class TidviewPopup extends LitElement {
 
       this.address = address ?? "";
       this.lastValue =
-        typeof lastValue === "number" ? lastValue : this.parseNumber(lastValue);
+        typeof lastValue === "number" ? lastValue : parseNumber(lastValue);
       this.lastUpdated = typeof lastUpdated === "number" ? lastUpdated : null;
       this.lastError = lastError ?? "";
 
@@ -448,12 +444,6 @@ class TidviewPopup extends LitElement {
       console.error("Failed to load popup status", error);
       this.lastError = "Unable to load current status.";
     }
-  }
-
-  parseNumber(value) {
-    if (value == null) return null;
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
   }
 
   handleInput(event) {
@@ -575,7 +565,7 @@ class TidviewPopup extends LitElement {
   async refreshBalance({ recordTimestamp = false } = {}) {
     const res = await chrome.runtime.sendMessage({ type: "refresh" });
     if (res?.ok) {
-      this.lastValue = this.parseNumber(res.value);
+      this.lastValue = parseNumber(res.value);
       if (recordTimestamp) {
         this.lastUpdated = Date.now();
         this.statusMessage = `Updated: ${new Date(this.lastUpdated).toLocaleString()}`;
@@ -737,16 +727,16 @@ class TidviewPopup extends LitElement {
       id,
       title: raw?.title || raw?.slug || "Unnamed market",
       outcome: raw?.outcome || "",
-      currentValue: this.parseNumber(raw?.currentValue),
-      cashPnl: this.parseNumber(raw?.cashPnl),
-      percentPnl: this.parseNumber(raw?.percentPnl),
-      size: this.parseNumber(raw?.size),
-      avgPrice: this.parseNumber(raw?.avgPrice),
-      curPrice: this.parseNumber(raw?.curPrice),
+      currentValue: parseNumber(raw?.currentValue),
+      cashPnl: parseNumber(raw?.cashPnl),
+      percentPnl: parseNumber(raw?.percentPnl),
+      size: parseNumber(raw?.size),
+      avgPrice: parseNumber(raw?.avgPrice),
+      curPrice: parseNumber(raw?.curPrice),
       endDate: raw?.endDate || "",
       icon: raw?.icon || "",
-      initialValue: this.parseNumber(raw?.initialValue),
-      realizedPnl: this.parseNumber(raw?.realizedPnl),
+      initialValue: parseNumber(raw?.initialValue),
+      realizedPnl: parseNumber(raw?.realizedPnl),
       slug: raw?.slug || "",
       eventSlug: raw?.eventSlug || "",
     };
@@ -776,63 +766,6 @@ class TidviewPopup extends LitElement {
       timestamp: timestamp != null ? timestamp * 1000 : null,
     };
   }
-
-  formatCurrency(value) {
-    const num = this.parseNumber(value);
-    if (num == null) return "—";
-    return currencyFormatter.format(num);
-  }
-
-  formatSignedCurrency(value) {
-    const num = this.parseNumber(value);
-    if (num == null) return "—";
-    const formatted = currencyFormatter.format(Math.abs(num));
-    return num >= 0 ? `+${formatted}` : `-${formatted}`;
-  }
-
-  formatPercent(value, { digits = 1 } = {}) {
-    const num = this.parseNumber(value);
-    if (num == null) return "—";
-    const formatted = num.toFixed(digits);
-    return num >= 0 ? `+${formatted}%` : `${formatted}%`;
-  }
-
-  formatNumber(value, options = {}) {
-    const num = this.parseNumber(value);
-    if (num == null) return "—";
-    const formatter = new Intl.NumberFormat("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-      ...options,
-    });
-    return formatter.format(num);
-  }
-
-  formatDate(value) {
-    if (!value) return "No end date";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "No end date";
-    return date.toLocaleDateString();
-  }
-
-  formatTimestamp(value) {
-    if (!value) return "Unknown time";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "Unknown time";
-    return date.toLocaleString();
-  }
-
-  formatSide(side) {
-    if (!side) return "";
-    return side.toUpperCase();
-  }
-
-  trendClass(value) {
-    const num = this.parseNumber(value);
-    if (num == null || num === 0) return "neutral";
-    return num > 0 ? "positive" : "negative";
-  }
-
   openMarket(slug, fallbackSlug) {
     const finalSlug = slug || fallbackSlug;
     if (!finalSlug) return;
@@ -844,293 +777,20 @@ class TidviewPopup extends LitElement {
     }
   }
 
-  renderPosition(position) {
-    const avgPriceText =
-      position.avgPrice != null
-        ? `@ ${this.formatNumber(position.avgPrice, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 3,
-          })}`
-        : "";
-    const curPriceText =
-      position.curPrice != null
-        ? `→ ${this.formatNumber(position.curPrice, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 3,
-          })}`
-        : "";
-    const sizeText =
-      position.size != null ? `Size ${this.formatNumber(position.size)}` : "";
-
-    const subtitleParts = [
-      position.outcome,
-      sizeText,
-      avgPriceText,
-      curPriceText,
-    ].filter(Boolean);
-
-    return html`
-      <li
-        class="position-row"
-        @click=${() => this.openMarket(position.slug, position.eventSlug)}
-        role="button"
-        tabindex="0"
-        @keydown=${(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            this.openMarket(position.slug, position.eventSlug);
-          }
-        }}
-      >
-        ${position.icon
-          ? html`<img
-              class="position-thumb"
-              src=${position.icon}
-              alt=""
-              loading="lazy"
-            />`
-          : html`<div class="position-thumb placeholder">
-              ${position.outcome?.[0] || "?"}
-            </div>`}
-        <div class="position-content">
-          <div class="position-title">${position.title}</div>
-          ${subtitleParts.length
-            ? html`<div class="position-subtitle">
-                ${subtitleParts.map((part) => html`<span>${part}</span>`)}
-              </div>`
-            : ""}
-          <div class="position-subtitle">
-            ${this.formatDate(position.endDate)}
-          </div>
-        </div>
-        <div class="position-stats">
-          <div class="position-stat-value">
-            ${this.formatCurrency(position.currentValue)}
-          </div>
-          <div class="position-stat-pnl ${this.trendClass(position.cashPnl)}">
-            ${this.formatSignedCurrency(position.cashPnl)}
-            ${position.percentPnl != null
-              ? html`<span>(${this.formatPercent(position.percentPnl)})</span>`
-              : ""}
-          </div>
-        </div>
-      </li>
-    `;
-  }
-
-  renderTradeRow(trade) {
-    const subtitleParts = [
-      `${this.formatNumber(trade.size)} @ ${this.formatNumber(trade.price, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 4,
-      })}`,
-      this.formatTimestamp(trade.timestamp),
-    ];
-
-    const sideClass =
-      trade.side === "BUY" ? "history-side buy" : "history-side sell";
-
-    return html`
-      <li
-        class="history-trade-row"
-        @click=${() => this.openMarket(trade.slug, trade.eventSlug)}
-        role="button"
-        tabindex="0"
-        @keydown=${(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            this.openMarket(trade.slug, trade.eventSlug);
-          }
-        }}
-      >
-        <div class="history-trade-top">
-          <span class=${sideClass}>${this.formatSide(trade.side)}</span>
-          ${trade.outcome ? html`<span>${trade.outcome}</span>` : ""}
-        </div>
-        <div class="history-trade-meta">
-          ${subtitleParts.map((text) => html`<span>${text}</span>`)}
-        </div>
-      </li>
-    `;
-  }
-
-  groupTrades(trades = []) {
-    const groupsMap = new Map();
-
-    for (const trade of trades) {
-      const key = trade.slug || trade.eventSlug || trade.title || trade.id;
-      let group = groupsMap.get(key);
-
-      if (!group) {
-        group = {
-          key,
-          title: trade.title || "Unnamed market",
-          slug: trade.slug || "",
-          eventSlug: trade.eventSlug || "",
-          icon: trade.icon || "",
-          latestTimestamp: trade.timestamp ?? null,
-          trades: [],
-        };
-        groupsMap.set(key, group);
-      }
-
-      if (!group.icon && trade.icon) {
-        group.icon = trade.icon;
-      }
-
-      if (
-        trade.timestamp != null &&
-        (group.latestTimestamp == null ||
-          trade.timestamp > group.latestTimestamp)
-      ) {
-        group.latestTimestamp = trade.timestamp;
-      }
-
-      group.trades.push(trade);
-    }
-
-    const groups = Array.from(groupsMap.values());
-
-    groups.forEach((group) => {
-      group.trades.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
-    });
-
-    groups.sort((a, b) => (b.latestTimestamp ?? 0) - (a.latestTimestamp ?? 0));
-
-    return groups;
-  }
-
-  changeHistoryPage(delta) {
-    if (!Number.isFinite(delta) || delta === 0) {
+  onHistoryPageChange(event) {
+    const nextPage = Number(event?.detail?.page);
+    if (!Number.isFinite(nextPage)) {
       return;
     }
-
-    const groups = this.groupTrades(this.trades);
-    if (groups.length === 0) {
-      this.historyPage = 1;
-      return;
+    const normalized = Math.max(1, Math.floor(nextPage));
+    if (normalized !== this.historyPage) {
+      this.historyPage = normalized;
     }
-
-    const maxPage = Math.max(1, Math.ceil(groups.length / HISTORY_PAGE_SIZE));
-    const currentPage = Math.min(Math.max(this.historyPage, 1), maxPage);
-    const nextPage = Math.min(Math.max(1, currentPage + delta), maxPage);
-
-    if (nextPage !== this.historyPage) {
-      this.historyPage = nextPage;
-    }
-  }
-
-  renderTradeGroup(group) {
-    return html`
-      <li class="history-group">
-        <div
-          class="history-group-header"
-          role="button"
-          tabindex="0"
-          @click=${() => this.openMarket(group.slug, group.eventSlug)}
-          @keydown=${(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              this.openMarket(group.slug, group.eventSlug);
-            }
-          }}
-        >
-          ${group.icon
-            ? html`<img class="position-thumb" src=${group.icon} alt="" />`
-            : html`<div class="position-thumb placeholder">
-                ${group.title?.[0] || "?"}
-              </div>`}
-          <div class="history-group-content">
-            <div class="history-group-title">${group.title}</div>
-            <div class="history-group-meta">
-              <span>${group.trades.length} trades</span>
-              ${group.latestTimestamp != null
-                ? html`<span>
-                    Latest ${this.formatTimestamp(group.latestTimestamp)}
-                  </span>`
-                : ""}
-            </div>
-          </div>
-        </div>
-        <ul class="history-trade-list">
-          ${repeat(
-            group.trades,
-            (trade) => trade.id,
-            (trade) => this.renderTradeRow(trade),
-          )}
-        </ul>
-      </li>
-    `;
-  }
-
-  renderHistoryPagination(currentPage, totalPages) {
-    if (totalPages <= 1) {
-      return html``;
-    }
-
-    return html`
-      <div class="history-pagination">
-        <button
-          type="button"
-          class="pagination-button"
-          @click=${() => this.changeHistoryPage(-1)}
-          ?disabled=${currentPage <= 1}
-        >
-          Prev
-        </button>
-        <span class="pagination-info">
-          Page ${currentPage} of ${totalPages}
-        </span>
-        <button
-          type="button"
-          class="pagination-button"
-          @click=${() => this.changeHistoryPage(1)}
-          ?disabled=${currentPage >= totalPages}
-        >
-          Next
-        </button>
-      </div>
-    `;
   }
 
   render() {
-    const totalCurrentValue = this.positions.reduce(
-      (sum, pos) => sum + (this.parseNumber(pos.currentValue) ?? 0),
-      0,
-    );
-    const totalCashPnl = this.positions.reduce(
-      (sum, pos) => sum + (this.parseNumber(pos.cashPnl) ?? 0),
-      0,
-    );
-    const totalInitialValue = this.positions.reduce(
-      (sum, pos) => sum + (this.parseNumber(pos.initialValue) ?? 0),
-      0,
-    );
-    const totalPercent =
-      totalInitialValue > 0 ? (totalCashPnl / totalInitialValue) * 100 : null;
-
     const isPositionsActive = this.activeTab === "positions";
     const isHistoryActive = this.activeTab === "history";
-    const tradeGroups = this.groupTrades(this.trades);
-    const totalTrades = this.trades.length;
-    const totalTradeMarkets = tradeGroups.length;
-    const totalHistoryPages =
-      totalTradeMarkets > 0
-        ? Math.ceil(totalTradeMarkets / HISTORY_PAGE_SIZE)
-        : 0;
-    const currentHistoryPage =
-      totalHistoryPages > 0
-        ? Math.min(Math.max(this.historyPage, 1), totalHistoryPages)
-        : 1;
-    const startHistoryIndex =
-      totalHistoryPages > 0 ? (currentHistoryPage - 1) * HISTORY_PAGE_SIZE : 0;
-    const pagedTradeGroups =
-      totalHistoryPages > 0
-        ? tradeGroups.slice(
-            startHistoryIndex,
-            startHistoryIndex + HISTORY_PAGE_SIZE,
-          )
-        : [];
     const tabError = isHistoryActive ? this.tradesError : this.positionsError;
     const errorMessage = this.lastError || tabError;
 
@@ -1181,75 +841,25 @@ class TidviewPopup extends LitElement {
       ${isPositionsActive
         ? html`
             <section class="tab-panel">
-              <section class="portfolio">
-                <div class="portfolio-header">
-                  <span>Portfolio</span>
-                  <span>${this.positions.length} positions</span>
-                </div>
-                <div class="portfolio-summary">
-                  <div class="summary-block">
-                    <span>Current Value</span>
-                    <span class="summary-value">
-                      ${this.formatCurrency(totalCurrentValue)}
-                    </span>
-                  </div>
-                  <div class="summary-block">
-                    <span>Total PnL</span>
-                    <span class="summary-pnl ${this.trendClass(totalCashPnl)}">
-                      ${this.formatSignedCurrency(totalCashPnl)}
-                      ${totalPercent != null
-                        ? html`<span
-                            >(${this.formatPercent(totalPercent)})</span
-                          >`
-                        : ""}
-                    </span>
-                  </div>
-                </div>
-                ${this.positionsLoading
-                  ? html`<div class="meta">Loading positions...</div>`
-                  : this.positions.length === 0
-                    ? html`<div class="meta">
-                        No positions found for this address.
-                      </div>`
-                    : html`<ul class="positions-list">
-                        ${repeat(
-                          this.positions,
-                          (pos) => pos.id,
-                          (pos) => this.renderPosition(pos),
-                        )}
-                      </ul>`}
-              </section>
+              <tidview-positions-panel
+                .positions=${this.positions}
+                .loading=${this.positionsLoading}
+                .openMarket=${this.boundOpenMarket}
+              ></tidview-positions-panel>
             </section>
           `
         : ""}
       ${isHistoryActive
         ? html`
             <section class="tab-panel">
-              <div class="portfolio-header">
-                <span>Trade History</span>
-                <span>
-                  ${totalTradeMarkets
-                    ? `${totalTrades} trades / ${totalTradeMarkets} markets`
-                    : `${totalTrades} trades`}
-                </span>
-              </div>
-              ${this.tradesLoading
-                ? html`<div class="meta">Loading history...</div>`
-                : tradeGroups.length === 0
-                  ? html`<div class="meta">
-                      No trades found for this address.
-                    </div>`
-                  : html`<ul class="history-list">
-                        ${repeat(
-                          pagedTradeGroups,
-                          (group) => group.key,
-                          (group) => this.renderTradeGroup(group),
-                        )}
-                      </ul>
-                      ${this.renderHistoryPagination(
-                        currentHistoryPage,
-                        totalHistoryPages,
-                      )}`}
+              <tidview-history-panel
+                .trades=${this.trades}
+                .loading=${this.tradesLoading}
+                .openMarket=${this.boundOpenMarket}
+                .page=${this.historyPage}
+                .pageSize=${HISTORY_PAGE_SIZE}
+                @page-change=${this.onHistoryPageChange}
+              ></tidview-history-panel>
             </section>
           `
         : ""}

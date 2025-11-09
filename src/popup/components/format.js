@@ -1,0 +1,73 @@
+const currencyFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+export const parseNumber = (value) => {
+  if (value == null) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+export const formatCurrency = (value) => {
+  const num = parseNumber(value);
+  if (num == null) return "—";
+  return currencyFormatter.format(num);
+};
+
+export const formatSignedCurrency = (value) => {
+  const num = parseNumber(value);
+  if (num == null) return "—";
+  const formatted = currencyFormatter.format(Math.abs(num));
+  return num >= 0 ? `+${formatted}` : `-${formatted}`;
+};
+
+export const formatPercent = (value, { digits = 1 } = {}) => {
+  const num = parseNumber(value);
+  if (num == null) return "—";
+  const formatted = num.toFixed(digits);
+  return num >= 0 ? `+${formatted}%` : `${formatted}%`;
+};
+
+export const formatNumber = (value, options = {}) => {
+  const num = parseNumber(value);
+  if (num == null) return "—";
+  const formatter = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+    ...options,
+  });
+  return formatter.format(num);
+};
+
+export const formatDate = (value) => {
+  if (!value) return "No end date";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "No end date";
+  return date.toLocaleDateString();
+};
+
+export const formatTimestamp = (value) => {
+  if (!value) return "Unknown time";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unknown time";
+  return date.toLocaleString();
+};
+
+export const formatSide = (value) => {
+  if (!value) return "";
+  return String(value).toUpperCase();
+};
+
+export const trendClass = (value) => {
+  const num = parseNumber(value);
+  if (num == null || num === 0) return "neutral";
+  return num > 0 ? "positive" : "negative";
+};
+
+export const ensurePositiveInteger = (value, fallback = 1) => {
+  const parsed = parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
