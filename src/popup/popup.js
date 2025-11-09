@@ -9,6 +9,8 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
+const HISTORY_PAGE_SIZE = 5;
+
 class TidviewPopup extends LitElement {
   static styles = css`
     :host {
@@ -244,20 +246,30 @@ class TidviewPopup extends LitElement {
       overflow-y: auto;
     }
 
-    .history-row {
-      display: flex;
-      gap: 10px;
+    .history-group {
       padding: 12px 0;
       border-top: 1px solid #f2f2f2;
-      cursor: pointer;
     }
 
-    .history-row:first-child {
+    .history-group:first-child {
       border-top: none;
       padding-top: 0;
     }
 
-    .history-content {
+    .history-group-header {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      cursor: pointer;
+    }
+
+    .history-group-header:focus-visible,
+    .history-trade-row:focus-visible {
+      outline: 2px solid #111;
+      outline-offset: 2px;
+    }
+
+    .history-group-content {
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -265,18 +277,76 @@ class TidviewPopup extends LitElement {
       font-size: 12px;
     }
 
-    .history-title {
+    .history-group-title {
       font-size: 13px;
       font-weight: 600;
       color: #111;
     }
 
-    .history-meta {
+    .history-group-meta {
       font-size: 11px;
       color: #666;
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
+    }
+
+    .history-trade-list {
+      list-style: none;
+      margin: 10px 0 0;
+      padding: 0 0 0 52px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history-trade-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .history-trade-top {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .history-trade-meta {
+      font-size: 11px;
+      color: #666;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .history-pagination {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      font-size: 12px;
+    }
+
+    .pagination-button {
+      padding: 6px 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #f7f7f7;
+      color: #111;
+      cursor: pointer;
+    }
+
+    .pagination-button[disabled] {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    .pagination-info {
+      color: #555;
     }
 
     .history-side.buy {
@@ -328,6 +398,7 @@ class TidviewPopup extends LitElement {
     tradesUpdatedAt: { type: Number },
     tradesError: { type: String },
     activeTab: { type: String },
+    historyPage: { type: Number },
   };
 
   constructor() {
@@ -347,6 +418,7 @@ class TidviewPopup extends LitElement {
     this.tradesUpdatedAt = null;
     this.tradesError = "";
     this.activeTab = "positions";
+    this.historyPage = 1;
   }
 
   connectedCallback() {
@@ -633,6 +705,7 @@ class TidviewPopup extends LitElement {
       this.trades = normalized;
       this.tradesUpdatedAt = Date.now();
       this.tradesError = "";
+      this.historyPage = 1;
       return normalized.length;
     } catch (error) {
       console.error("Failed to load trades", error);
@@ -845,7 +918,7 @@ class TidviewPopup extends LitElement {
     `;
   }
 
-  renderTrade(trade) {
+  renderTradeRow(trade) {
     const subtitleParts = [
       `${this.formatNumber(trade.size)} @ ${this.formatNumber(trade.price, {
         minimumFractionDigits: 2,
@@ -859,7 +932,7 @@ class TidviewPopup extends LitElement {
 
     return html`
       <li
-        class="history-row"
+        class="history-trade-row"
         @click=${() => this.openMarket(trade.slug, trade.eventSlug)}
         role="button"
         tabindex="0"
@@ -870,20 +943,153 @@ class TidviewPopup extends LitElement {
           }
         }}
       >
-        ${trade.icon
-          ? html`<img class="position-thumb" src=${trade.icon} alt="" />`
-          : html`<div class="position-thumb placeholder">
-              ${trade.outcome?.[0] || "?"}
-            </div>`}
-        <div class="history-content">
-          <div class="history-title">${trade.title}</div>
-          <div class="history-meta">
-            <span class=${sideClass}>${this.formatSide(trade.side)}</span>
-            ${trade.outcome ? html`<span>${trade.outcome}</span>` : ""}
-            ${subtitleParts.map((text) => html`<span>${text}</span>`)}
-          </div>
+        <div class="history-trade-top">
+          <span class=${sideClass}>${this.formatSide(trade.side)}</span>
+          ${trade.outcome ? html`<span>${trade.outcome}</span>` : ""}
+        </div>
+        <div class="history-trade-meta">
+          ${subtitleParts.map((text) => html`<span>${text}</span>`)}
         </div>
       </li>
+    `;
+  }
+
+  groupTrades(trades = []) {
+    const groupsMap = new Map();
+
+    for (const trade of trades) {
+      const key = trade.slug || trade.eventSlug || trade.title || trade.id;
+      let group = groupsMap.get(key);
+
+      if (!group) {
+        group = {
+          key,
+          title: trade.title || "Unnamed market",
+          slug: trade.slug || "",
+          eventSlug: trade.eventSlug || "",
+          icon: trade.icon || "",
+          latestTimestamp: trade.timestamp ?? null,
+          trades: [],
+        };
+        groupsMap.set(key, group);
+      }
+
+      if (!group.icon && trade.icon) {
+        group.icon = trade.icon;
+      }
+
+      if (
+        trade.timestamp != null &&
+        (group.latestTimestamp == null ||
+          trade.timestamp > group.latestTimestamp)
+      ) {
+        group.latestTimestamp = trade.timestamp;
+      }
+
+      group.trades.push(trade);
+    }
+
+    const groups = Array.from(groupsMap.values());
+
+    groups.forEach((group) => {
+      group.trades.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
+    });
+
+    groups.sort((a, b) => (b.latestTimestamp ?? 0) - (a.latestTimestamp ?? 0));
+
+    return groups;
+  }
+
+  changeHistoryPage(delta) {
+    if (!Number.isFinite(delta) || delta === 0) {
+      return;
+    }
+
+    const groups = this.groupTrades(this.trades);
+    if (groups.length === 0) {
+      this.historyPage = 1;
+      return;
+    }
+
+    const maxPage = Math.max(1, Math.ceil(groups.length / HISTORY_PAGE_SIZE));
+    const currentPage = Math.min(Math.max(this.historyPage, 1), maxPage);
+    const nextPage = Math.min(Math.max(1, currentPage + delta), maxPage);
+
+    if (nextPage !== this.historyPage) {
+      this.historyPage = nextPage;
+    }
+  }
+
+  renderTradeGroup(group) {
+    return html`
+      <li class="history-group">
+        <div
+          class="history-group-header"
+          role="button"
+          tabindex="0"
+          @click=${() => this.openMarket(group.slug, group.eventSlug)}
+          @keydown=${(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              this.openMarket(group.slug, group.eventSlug);
+            }
+          }}
+        >
+          ${group.icon
+            ? html`<img class="position-thumb" src=${group.icon} alt="" />`
+            : html`<div class="position-thumb placeholder">
+                ${group.title?.[0] || "?"}
+              </div>`}
+          <div class="history-group-content">
+            <div class="history-group-title">${group.title}</div>
+            <div class="history-group-meta">
+              <span>${group.trades.length} trades</span>
+              ${group.latestTimestamp != null
+                ? html`<span>
+                    Latest ${this.formatTimestamp(group.latestTimestamp)}
+                  </span>`
+                : ""}
+            </div>
+          </div>
+        </div>
+        <ul class="history-trade-list">
+          ${repeat(
+            group.trades,
+            (trade) => trade.id,
+            (trade) => this.renderTradeRow(trade),
+          )}
+        </ul>
+      </li>
+    `;
+  }
+
+  renderHistoryPagination(currentPage, totalPages) {
+    if (totalPages <= 1) {
+      return html``;
+    }
+
+    return html`
+      <div class="history-pagination">
+        <button
+          type="button"
+          class="pagination-button"
+          @click=${() => this.changeHistoryPage(-1)}
+          ?disabled=${currentPage <= 1}
+        >
+          Prev
+        </button>
+        <span class="pagination-info">
+          Page ${currentPage} of ${totalPages}
+        </span>
+        <button
+          type="button"
+          class="pagination-button"
+          @click=${() => this.changeHistoryPage(1)}
+          ?disabled=${currentPage >= totalPages}
+        >
+          Next
+        </button>
+      </div>
     `;
   }
 
@@ -905,6 +1111,26 @@ class TidviewPopup extends LitElement {
 
     const isPositionsActive = this.activeTab === "positions";
     const isHistoryActive = this.activeTab === "history";
+    const tradeGroups = this.groupTrades(this.trades);
+    const totalTrades = this.trades.length;
+    const totalTradeMarkets = tradeGroups.length;
+    const totalHistoryPages =
+      totalTradeMarkets > 0
+        ? Math.ceil(totalTradeMarkets / HISTORY_PAGE_SIZE)
+        : 0;
+    const currentHistoryPage =
+      totalHistoryPages > 0
+        ? Math.min(Math.max(this.historyPage, 1), totalHistoryPages)
+        : 1;
+    const startHistoryIndex =
+      totalHistoryPages > 0 ? (currentHistoryPage - 1) * HISTORY_PAGE_SIZE : 0;
+    const pagedTradeGroups =
+      totalHistoryPages > 0
+        ? tradeGroups.slice(
+            startHistoryIndex,
+            startHistoryIndex + HISTORY_PAGE_SIZE,
+          )
+        : [];
     const tabError = isHistoryActive ? this.tradesError : this.positionsError;
     const errorMessage = this.lastError || tabError;
 
@@ -1001,21 +1227,29 @@ class TidviewPopup extends LitElement {
             <section class="tab-panel">
               <div class="portfolio-header">
                 <span>Trade History</span>
-                <span>${this.trades.length} trades</span>
+                <span>
+                  ${totalTradeMarkets
+                    ? `${totalTrades} trades / ${totalTradeMarkets} markets`
+                    : `${totalTrades} trades`}
+                </span>
               </div>
               ${this.tradesLoading
                 ? html`<div class="meta">Loading history...</div>`
-                : this.trades.length === 0
+                : tradeGroups.length === 0
                   ? html`<div class="meta">
                       No trades found for this address.
                     </div>`
                   : html`<ul class="history-list">
-                      ${repeat(
-                        this.trades,
-                        (trade) => trade.id,
-                        (trade) => this.renderTrade(trade),
-                      )}
-                    </ul>`}
+                        ${repeat(
+                          pagedTradeGroups,
+                          (group) => group.key,
+                          (group) => this.renderTradeGroup(group),
+                        )}
+                      </ul>
+                      ${this.renderHistoryPagination(
+                        currentHistoryPage,
+                        totalHistoryPages,
+                      )}`}
             </section>
           `
         : ""}
