@@ -72,6 +72,34 @@ class TidviewPopup extends LitElement {
       font-size: 14px;
     }
 
+    .tabs {
+      display: flex;
+      margin-top: 16px;
+      border-bottom: 1px solid #e4e4e4;
+      gap: 8px;
+    }
+
+    .tab-button {
+      flex: 1;
+      padding: 10px 0;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      font-size: 13px;
+      font-weight: 600;
+      color: #555;
+      cursor: pointer;
+    }
+
+    .tab-button.active {
+      border-bottom-color: #111;
+      color: #111;
+    }
+
+    .tab-panel {
+      padding-top: 12px;
+    }
+
     .portfolio {
       margin-top: 14px;
       padding-top: 12px;
@@ -143,6 +171,7 @@ class TidviewPopup extends LitElement {
       gap: 12px;
       padding: 12px 0;
       border-top: 1px solid #f2f2f2;
+      cursor: pointer;
     }
 
     .position-row:first-child {
@@ -207,6 +236,57 @@ class TidviewPopup extends LitElement {
       font-size: 11px;
     }
 
+    .history-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+
+    .history-row {
+      display: flex;
+      gap: 10px;
+      padding: 12px 0;
+      border-top: 1px solid #f2f2f2;
+      cursor: pointer;
+    }
+
+    .history-row:first-child {
+      border-top: none;
+      padding-top: 0;
+    }
+
+    .history-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+    }
+
+    .history-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #111;
+    }
+
+    .history-meta {
+      font-size: 11px;
+      color: #666;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .history-side.buy {
+      color: #107c41;
+    }
+
+    .history-side.sell {
+      color: #b00020;
+    }
+
     .positive {
       color: #107c41;
     }
@@ -243,6 +323,11 @@ class TidviewPopup extends LitElement {
     positionsLoading: { type: Boolean },
     positionsUpdatedAt: { type: Number },
     positionsError: { type: String },
+    trades: { type: Array },
+    tradesLoading: { type: Boolean },
+    tradesUpdatedAt: { type: Number },
+    tradesError: { type: String },
+    activeTab: { type: String },
   };
 
   constructor() {
@@ -257,6 +342,11 @@ class TidviewPopup extends LitElement {
     this.positionsLoading = false;
     this.positionsUpdatedAt = null;
     this.positionsError = "";
+    this.trades = [];
+    this.tradesLoading = false;
+    this.tradesUpdatedAt = null;
+    this.tradesError = "";
+    this.activeTab = "positions";
   }
 
   connectedCallback() {
@@ -298,11 +388,43 @@ class TidviewPopup extends LitElement {
     this.address = event.target.value;
   }
 
+  async setActiveTab(tab) {
+    if (this.activeTab === tab) return;
+    this.activeTab = tab;
+
+    if (tab === "positions") {
+      if (
+        this.address &&
+        ADDRESS_REGEX.test(this.address) &&
+        !this.positionsLoading &&
+        this.positions.length === 0
+      ) {
+        await this.loadPositions({ address: this.address, silent: true });
+      }
+      return;
+    }
+
+    if (
+      tab === "history" &&
+      this.address &&
+      ADDRESS_REGEX.test(this.address) &&
+      !this.tradesLoading &&
+      this.trades.length === 0
+    ) {
+      try {
+        await this.loadTrades({ address: this.address });
+      } catch (error) {
+        console.error("Failed to load trades on tab switch", error);
+      }
+    }
+  }
+
   async handleSave() {
     const trimmed = this.address.trim();
     if (!ADDRESS_REGEX.test(trimmed)) {
       this.lastError = "Please enter a valid 0x address.";
       this.positionsError = "";
+      this.tradesError = "";
       this.statusMessage = "";
       return;
     }
@@ -314,10 +436,19 @@ class TidviewPopup extends LitElement {
     try {
       await chrome.storage.sync.set({ address: trimmed });
       this.address = trimmed;
-      const [badgeOk] = await Promise.all([
+      const fetches = [
         this.refreshBalance({ recordTimestamp: true }),
         this.loadPositions({ address: trimmed }),
-      ]);
+      ];
+      if (this.activeTab === "history" || this.trades.length > 0) {
+        fetches.push(
+          this.loadTrades({
+            address: trimmed,
+            silent: this.activeTab !== "history",
+          }),
+        );
+      }
+      const [badgeOk] = await Promise.all(fetches);
       if (badgeOk) {
         this.statusMessage = `Refreshed at ${new Date().toLocaleString()}`;
       }
@@ -335,6 +466,7 @@ class TidviewPopup extends LitElement {
     if (!ADDRESS_REGEX.test(trimmed)) {
       this.lastError = "Please enter a valid 0x address.";
       this.positionsError = "";
+      this.tradesError = "";
       this.statusMessage = "";
       return;
     }
@@ -345,10 +477,17 @@ class TidviewPopup extends LitElement {
     this.statusMessage = "Refreshing...";
     try {
       this.address = trimmed;
-      const [badgeOk] = await Promise.all([
+      const fetches = [
         this.refreshBalance({ recordTimestamp: true }),
         this.loadPositions({ address: trimmed }),
-      ]);
+      ];
+      fetches.push(
+        this.loadTrades({
+          address: trimmed,
+          silent: this.activeTab !== "history",
+        }),
+      );
+      const [badgeOk] = await Promise.all(fetches);
       if (badgeOk) {
         this.statusMessage = `Refreshed at ${new Date().toLocaleString()}`;
       }
@@ -448,6 +587,70 @@ class TidviewPopup extends LitElement {
     }
   }
 
+  async loadTrades({ address = this.address, silent = false } = {}) {
+    const trimmed = address?.trim();
+
+    if (!trimmed) {
+      if (!silent) {
+        this.trades = [];
+        this.tradesUpdatedAt = null;
+        this.tradesError = "Please enter a valid 0x address.";
+        this.statusMessage = "";
+      }
+      return 0;
+    }
+
+    if (!ADDRESS_REGEX.test(trimmed)) {
+      if (!silent) {
+        this.trades = [];
+        this.tradesUpdatedAt = null;
+        this.tradesError = "Please enter a valid 0x address.";
+        this.statusMessage = "";
+      }
+      return 0;
+    }
+
+    this.tradesLoading = true;
+
+    try {
+      const url = `https://data-api.polymarket.com/trades?user=${encodeURIComponent(
+        trimmed,
+      )}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`Trades request failed with HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (!Array.isArray(data)) {
+        throw new Error("Unexpected trades response format");
+      }
+
+      const normalized = data.map((entry) => this.normalizeTrade(entry));
+      normalized.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
+
+      this.trades = normalized;
+      this.tradesUpdatedAt = Date.now();
+      this.tradesError = "";
+      return normalized.length;
+    } catch (error) {
+      console.error("Failed to load trades", error);
+      this.trades = [];
+      this.tradesUpdatedAt = null;
+      if (!silent) {
+        this.tradesError = error?.message || "Failed to load trade history.";
+        this.statusMessage = "";
+      }
+      if (!silent) {
+        throw error;
+      }
+      return 0;
+    } finally {
+      this.tradesLoading = false;
+    }
+  }
+
   normalizePosition(raw) {
     const id =
       raw?.asset ||
@@ -472,6 +675,32 @@ class TidviewPopup extends LitElement {
       initialValue: this.parseNumber(raw?.initialValue),
       realizedPnl: this.parseNumber(raw?.realizedPnl),
       slug: raw?.slug || "",
+      eventSlug: raw?.eventSlug || "",
+    };
+  }
+
+  normalizeTrade(raw) {
+    const toNumber = (value) => {
+      const num = Number(value);
+      return Number.isFinite(num) ? num : null;
+    };
+
+    const timestamp = toNumber(raw?.timestamp);
+
+    return {
+      id:
+        raw?.transactionHash ||
+        raw?.asset ||
+        `trade-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      title: raw?.title || raw?.slug || "Unnamed market",
+      outcome: raw?.outcome || "",
+      slug: raw?.slug || "",
+      eventSlug: raw?.eventSlug || "",
+      icon: raw?.icon || "",
+      side: (raw?.side || "").toUpperCase(),
+      size: toNumber(raw?.size),
+      price: toNumber(raw?.price),
+      timestamp: timestamp != null ? timestamp * 1000 : null,
     };
   }
 
@@ -513,10 +742,33 @@ class TidviewPopup extends LitElement {
     return date.toLocaleDateString();
   }
 
+  formatTimestamp(value) {
+    if (!value) return "Unknown time";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Unknown time";
+    return date.toLocaleString();
+  }
+
+  formatSide(side) {
+    if (!side) return "";
+    return side.toUpperCase();
+  }
+
   trendClass(value) {
     const num = this.parseNumber(value);
     if (num == null || num === 0) return "neutral";
     return num > 0 ? "positive" : "negative";
+  }
+
+  openMarket(slug, fallbackSlug) {
+    const finalSlug = slug || fallbackSlug;
+    if (!finalSlug) return;
+    const url = `https://polymarket.com/market/${finalSlug}`;
+    if (typeof chrome !== "undefined" && chrome?.tabs?.create) {
+      chrome.tabs.create({ url });
+    } else {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
   }
 
   renderPosition(position) {
@@ -545,7 +797,18 @@ class TidviewPopup extends LitElement {
     ].filter(Boolean);
 
     return html`
-      <li class="position-row">
+      <li
+        class="position-row"
+        @click=${() => this.openMarket(position.slug, position.eventSlug)}
+        role="button"
+        tabindex="0"
+        @keydown=${(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            this.openMarket(position.slug, position.eventSlug);
+          }
+        }}
+      >
         ${position.icon
           ? html`<img
               class="position-thumb"
@@ -582,6 +845,48 @@ class TidviewPopup extends LitElement {
     `;
   }
 
+  renderTrade(trade) {
+    const subtitleParts = [
+      `${this.formatNumber(trade.size)} @ ${this.formatNumber(trade.price, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 4,
+      })}`,
+      this.formatTimestamp(trade.timestamp),
+    ];
+
+    const sideClass =
+      trade.side === "BUY" ? "history-side buy" : "history-side sell";
+
+    return html`
+      <li
+        class="history-row"
+        @click=${() => this.openMarket(trade.slug, trade.eventSlug)}
+        role="button"
+        tabindex="0"
+        @keydown=${(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            this.openMarket(trade.slug, trade.eventSlug);
+          }
+        }}
+      >
+        ${trade.icon
+          ? html`<img class="position-thumb" src=${trade.icon} alt="" />`
+          : html`<div class="position-thumb placeholder">
+              ${trade.outcome?.[0] || "?"}
+            </div>`}
+        <div class="history-content">
+          <div class="history-title">${trade.title}</div>
+          <div class="history-meta">
+            <span class=${sideClass}>${this.formatSide(trade.side)}</span>
+            ${trade.outcome ? html`<span>${trade.outcome}</span>` : ""}
+            ${subtitleParts.map((text) => html`<span>${text}</span>`)}
+          </div>
+        </div>
+      </li>
+    `;
+  }
+
   render() {
     const totalCurrentValue = this.positions.reduce(
       (sum, pos) => sum + (this.parseNumber(pos.currentValue) ?? 0),
@@ -598,7 +903,10 @@ class TidviewPopup extends LitElement {
     const totalPercent =
       totalInitialValue > 0 ? (totalCashPnl / totalInitialValue) * 100 : null;
 
-    const errorMessage = this.lastError || this.positionsError;
+    const isPositionsActive = this.activeTab === "positions";
+    const isHistoryActive = this.activeTab === "history";
+    const tabError = isHistoryActive ? this.tradesError : this.positionsError;
+    const errorMessage = this.lastError || tabError;
 
     return html`
       <h1>Tidview</h1>
@@ -628,54 +936,102 @@ class TidviewPopup extends LitElement {
             Latest value: $${Number(this.lastValue).toLocaleString()}
           </div>`
         : ""}
-      ${this.positions.length || this.positionsLoading
+      <div class="tabs">
+        <button
+          type="button"
+          class="tab-button ${isPositionsActive ? "active" : ""}"
+          @click=${() => this.setActiveTab("positions")}
+        >
+          Positions
+        </button>
+        <button
+          type="button"
+          class="tab-button ${isHistoryActive ? "active" : ""}"
+          @click=${() => this.setActiveTab("history")}
+        >
+          History
+        </button>
+      </div>
+      ${isPositionsActive
         ? html`
-            <section class="portfolio">
+            <section class="tab-panel">
+              <section class="portfolio">
+                <div class="portfolio-header">
+                  <span>Portfolio</span>
+                  <span>${this.positions.length} positions</span>
+                </div>
+                <div class="portfolio-summary">
+                  <div class="summary-block">
+                    <span>Current Value</span>
+                    <span class="summary-value">
+                      ${this.formatCurrency(totalCurrentValue)}
+                    </span>
+                  </div>
+                  <div class="summary-block">
+                    <span>Total PnL</span>
+                    <span class="summary-pnl ${this.trendClass(totalCashPnl)}">
+                      ${this.formatSignedCurrency(totalCashPnl)}
+                      ${totalPercent != null
+                        ? html`<span
+                            >(${this.formatPercent(totalPercent)})</span
+                          >`
+                        : ""}
+                    </span>
+                  </div>
+                </div>
+                ${this.positionsLoading
+                  ? html`<div class="meta">Loading positions...</div>`
+                  : this.positions.length === 0
+                    ? html`<div class="meta">
+                        No positions found for this address.
+                      </div>`
+                    : html`<ul class="positions-list">
+                        ${repeat(
+                          this.positions,
+                          (pos) => pos.id,
+                          (pos) => this.renderPosition(pos),
+                        )}
+                      </ul>`}
+              </section>
+            </section>
+          `
+        : ""}
+      ${isHistoryActive
+        ? html`
+            <section class="tab-panel">
               <div class="portfolio-header">
-                <span>Portfolio</span>
-                <span>${this.positions.length} positions</span>
+                <span>Trade History</span>
+                <span>${this.trades.length} trades</span>
               </div>
-              <div class="portfolio-summary">
-                <div class="summary-block">
-                  <span>Current Value</span>
-                  <span class="summary-value">
-                    ${this.formatCurrency(totalCurrentValue)}
-                  </span>
-                </div>
-                <div class="summary-block">
-                  <span>Total PnL</span>
-                  <span class="summary-pnl ${this.trendClass(totalCashPnl)}">
-                    ${this.formatSignedCurrency(totalCashPnl)}
-                    ${totalPercent != null
-                      ? html`<span>(${this.formatPercent(totalPercent)})</span>`
-                      : ""}
-                  </span>
-                </div>
-              </div>
-              ${this.positionsLoading
-                ? html`<div class="meta">Loading positions...</div>`
-                : ""}
-              ${!this.positionsLoading && this.positions.length === 0
-                ? html`<div class="meta">
-                    No positions found for this address.
-                  </div>`
-                : html`<ul class="positions-list">
-                    ${repeat(
-                      this.positions,
-                      (pos) => pos.id,
-                      (pos) => this.renderPosition(pos),
-                    )}
-                  </ul>`}
+              ${this.tradesLoading
+                ? html`<div class="meta">Loading history...</div>`
+                : this.trades.length === 0
+                  ? html`<div class="meta">
+                      No trades found for this address.
+                    </div>`
+                  : html`<ul class="history-list">
+                      ${repeat(
+                        this.trades,
+                        (trade) => trade.id,
+                        (trade) => this.renderTrade(trade),
+                      )}
+                    </ul>`}
             </section>
           `
         : ""}
       ${this.statusMessage
         ? html`<div class="meta">${this.statusMessage}</div>`
         : ""}
-      ${this.positionsUpdatedAt
+      ${isPositionsActive && this.positionsUpdatedAt
         ? html`<div class="meta">
             Positions refreshed:
             ${new Date(this.positionsUpdatedAt).toLocaleString()}
+          </div>`
+        : ""}
+      ${isHistoryActive && this.tradesUpdatedAt
+        ? html`<div class="meta">
+            History refreshed:
+            ${new Date(this.tradesUpdatedAt).toLocaleString()}
           </div>`
         : ""}
       ${errorMessage ? html`<div class="error">${errorMessage}</div>` : ""}
