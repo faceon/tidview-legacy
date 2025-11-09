@@ -28,7 +28,6 @@ class TidviewHistoryPanel extends LitElement {
   static styles = css`
     :host {
       display: block;
-      margin-top: 12px;
     }
 
     .history-section {
@@ -55,8 +54,6 @@ class TidviewHistoryPanel extends LitElement {
       list-style: none;
       margin: 0;
       padding: 0;
-      max-height: 320px;
-      overflow-y: auto;
     }
 
     .position-thumb {

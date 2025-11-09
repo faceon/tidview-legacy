@@ -27,7 +27,6 @@ class TidviewPositionsPanel extends LitElement {
   static styles = css`
     :host {
       display: block;
-      margin-top: 14px;
     }
 
     .portfolio {
@@ -91,8 +90,6 @@ class TidviewPositionsPanel extends LitElement {
       list-style: none;
       margin: 0;
       padding: 0;
-      max-height: 320px;
-      overflow-y: auto;
     }
 
     .position-row {

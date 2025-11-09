@@ -10,70 +10,134 @@ class TidviewPopup extends LitElement {
   static styles = css`
     :host {
       display: block;
-      width: 320px;
-      padding: 14px;
+      width: 360px;
+      max-height: 600px;
       box-sizing: border-box;
       font-family:
         -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
         "Apple Color Emoji", "Segoe UI Emoji";
+      color: #111;
+      background: #fff;
+    }
+
+    .scroll-area {
+      max-height: 600px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .top-controls {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #fff;
+      padding: 14px;
+      border-bottom: 1px solid #ececec;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
     }
 
     h1 {
       font-size: 16px;
-      margin: 0 0 10px;
+      margin: 0;
+    }
+
+    .address-chip {
+      font-size: 12px;
+      color: #333;
+      background: #f3f3f3;
+      border-radius: 999px;
+      padding: 4px 10px;
+      width: max-content;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .address-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
     label {
       font-size: 12px;
       color: #444;
-      display: block;
-      margin-bottom: 4px;
     }
 
     input[type="text"] {
       width: 100%;
-      padding: 8px;
+      padding: 8px 10px;
       border: 1px solid #ccc;
       border-radius: 8px;
       box-sizing: border-box;
+      font-size: 13px;
     }
 
     .row {
       display: flex;
       gap: 8px;
-      margin-top: 10px;
     }
 
     button {
-      flex: 1;
-      padding: 8px 10px;
-      border: 0;
+      border: none;
       border-radius: 10px;
-      background: #111;
-      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
+      font-family: inherit;
+      transition:
+        background 0.2s ease,
+        opacity 0.2s ease;
     }
 
-    button.secondary {
+    .primary-button {
+      flex: 1;
+      padding: 9px 12px;
+      background: #111;
+      color: #fff;
+    }
+
+    .secondary-button {
+      flex: 1;
+      padding: 9px 12px;
       background: #e9e9e9;
       color: #111;
     }
 
-    button[disabled] {
-      opacity: 0.7;
-      cursor: default;
+    .top-refresh {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #111;
+      color: #fff;
+      font-size: 12px;
+      line-height: 1;
+      min-width: 0;
     }
 
-    .value {
-      margin-top: 8px;
-      font-size: 14px;
+    button[disabled] {
+      opacity: 0.5;
+      cursor: default;
     }
 
     .tabs {
       display: flex;
-      margin-top: 16px;
-      border-bottom: 1px solid #e4e4e4;
       gap: 8px;
+      border-bottom: 1px solid #e4e4e4;
+      padding-bottom: 2px;
     }
 
     .tab-button {
@@ -84,7 +148,7 @@ class TidviewPopup extends LitElement {
       border-bottom: 2px solid transparent;
       font-size: 13px;
       font-weight: 600;
-      color: #555;
+      color: #666;
       cursor: pointer;
     }
 
@@ -93,292 +157,42 @@ class TidviewPopup extends LitElement {
       color: #111;
     }
 
-    .tab-panel {
-      padding-top: 12px;
-    }
-
-    .portfolio {
-      margin-top: 14px;
-      padding-top: 12px;
-      border-top: 1px solid #eee;
+    .content {
+      padding: 16px 14px 18px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 18px;
     }
 
-    .portfolio-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .portfolio-header span {
-      font-size: 12px;
-      font-weight: 400;
-      color: #666;
-    }
-
-    .portfolio-summary {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
+    .value-card {
+      padding: 12px;
+      border-radius: 10px;
       border: 1px solid #f1f1f1;
-      border-radius: 10px;
-      padding: 10px 12px;
       background: #fafafa;
-    }
-
-    .summary-block {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      font-size: 12px;
-      color: #555;
-    }
-
-    .summary-value {
-      font-size: 16px;
-      font-weight: 600;
-      color: #111;
-    }
-
-    .summary-pnl {
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .summary-pnl span {
-      font-size: 12px;
-      font-weight: 400;
-      margin-left: 4px;
-    }
-
-    .positions-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      max-height: 320px;
-      overflow-y: auto;
-    }
-
-    .position-row {
-      display: flex;
-      gap: 12px;
-      padding: 12px 0;
-      border-top: 1px solid #f2f2f2;
-      cursor: pointer;
-    }
-
-    .position-row:first-child {
-      border-top: none;
-      padding-top: 0;
-    }
-
-    .position-thumb {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      object-fit: cover;
-      flex-shrink: 0;
-      background: #f4f4f4;
-    }
-
-    .position-thumb.placeholder {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      color: #777;
-    }
-
-    .position-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .position-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: #111;
-      margin: 0;
-    }
-
-    .position-subtitle {
-      font-size: 11px;
-      color: #666;
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .position-stats {
-      text-align: right;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 12px;
-    }
-
-    .position-stat-value {
       font-size: 14px;
-      font-weight: 600;
-      color: #111;
     }
 
-    .position-stat-pnl {
-      font-size: 11px;
-    }
-
-    .history-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      max-height: 320px;
-      overflow-y: auto;
-    }
-
-    .history-group {
-      padding: 12px 0;
-      border-top: 1px solid #f2f2f2;
-    }
-
-    .history-group:first-child {
-      border-top: none;
-      padding-top: 0;
-    }
-
-    .history-group-header {
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      cursor: pointer;
-    }
-
-    .history-group-header:focus-visible,
-    .history-trade-row:focus-visible {
-      outline: 2px solid #111;
-      outline-offset: 2px;
-    }
-
-    .history-group-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 12px;
-    }
-
-    .history-group-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: #111;
-    }
-
-    .history-group-meta {
-      font-size: 11px;
-      color: #666;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .history-trade-list {
-      list-style: none;
-      margin: 10px 0 0;
-      padding: 0 0 0 52px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .history-trade-row {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 12px;
-      cursor: pointer;
-    }
-
-    .history-trade-top {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .history-trade-meta {
-      font-size: 11px;
-      color: #666;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .history-pagination {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 12px;
-      font-size: 12px;
-    }
-
-    .pagination-button {
-      padding: 6px 10px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      background: #f7f7f7;
-      color: #111;
-      cursor: pointer;
-    }
-
-    .pagination-button[disabled] {
-      opacity: 0.6;
-      cursor: default;
-    }
-
-    .pagination-info {
-      color: #555;
-    }
-
-    .history-side.buy {
-      color: #107c41;
-    }
-
-    .history-side.sell {
-      color: #b00020;
-    }
-
-    .positive {
-      color: #107c41;
-    }
-
-    .negative {
-      color: #b00020;
-    }
-
-    .neutral {
-      color: #444;
+    .tab-panel {
+      display: block;
     }
 
     .meta {
       font-size: 12px;
       color: #666;
-      margin-top: 8px;
     }
 
     .error {
-      margin-top: 8px;
-      font-size: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #ffe6e6;
       color: #b00020;
+      font-size: 12px;
     }
   `;
 
   static properties = {
     address: { type: String },
+    addressPersisted: { type: Boolean },
     lastValue: { type: Number },
     lastUpdated: { type: Number },
     lastError: { type: String },
@@ -399,6 +213,7 @@ class TidviewPopup extends LitElement {
   constructor() {
     super();
     this.address = "";
+    this.addressPersisted = false;
     this.lastValue = null;
     this.lastUpdated = null;
     this.lastError = "";
@@ -427,7 +242,9 @@ class TidviewPopup extends LitElement {
       const { address, lastValue, lastUpdated, lastError } =
         (await chrome.runtime.sendMessage({ type: "getStatus" })) || {};
 
-      this.address = address ?? "";
+      const storedAddress = typeof address === "string" ? address.trim() : "";
+      this.address = storedAddress;
+      this.addressPersisted = ADDRESS_REGEX.test(storedAddress);
       this.lastValue =
         typeof lastValue === "number" ? lastValue : parseNumber(lastValue);
       this.lastUpdated = typeof lastUpdated === "number" ? lastUpdated : null;
@@ -437,7 +254,7 @@ class TidviewPopup extends LitElement {
         this.statusMessage = `Last updated: ${new Date(this.lastUpdated).toLocaleString()}`;
       }
 
-      if (this.address && ADDRESS_REGEX.test(this.address)) {
+      if (this.addressPersisted) {
         await this.loadPositions({ address: this.address, silent: true });
       }
     } catch (error) {
@@ -498,6 +315,7 @@ class TidviewPopup extends LitElement {
     try {
       await chrome.storage.sync.set({ address: trimmed });
       this.address = trimmed;
+      this.addressPersisted = true;
       const fetches = [
         this.refreshBalance({ recordTimestamp: true }),
         this.loadPositions({ address: trimmed }),
@@ -788,97 +606,147 @@ class TidviewPopup extends LitElement {
     }
   }
 
+  formatAddress(address) {
+    if (typeof address !== "string") {
+      return "";
+    }
+    const trimmed = address.trim();
+    if (trimmed.length <= 12) {
+      return trimmed;
+    }
+    return `${trimmed.slice(0, 6)}...${trimmed.slice(-4)}`;
+  }
+
   render() {
     const isPositionsActive = this.activeTab === "positions";
     const isHistoryActive = this.activeTab === "history";
     const tabError = isHistoryActive ? this.tradesError : this.positionsError;
     const errorMessage = this.lastError || tabError;
 
+    const trimmedAddress =
+      typeof this.address === "string" ? this.address.trim() : "";
+    const hasSavedAddress =
+      this.addressPersisted && ADDRESS_REGEX.test(trimmedAddress);
+    const refreshDisabled = this.isBusy || !hasSavedAddress;
+
     return html`
-      <h1>Tidview</h1>
-      <label for="address">Your 0x address</label>
-      <input
-        id="address"
-        type="text"
-        placeholder="0x...40 hex chars"
-        .value=${this.address}
-        @input=${this.handleInput}
-        autocomplete="off"
-      />
-      <div class="row">
-        <button @click=${this.handleSave} ?disabled=${this.isBusy}>
-          ${this.isBusy ? "Working..." : "Save"}
-        </button>
-        <button
-          class="secondary"
-          @click=${this.handleRefresh}
-          ?disabled=${this.isBusy}
-        >
-          Refresh
-        </button>
+      <div class="scroll-area">
+        <div class="top-controls">
+          <div class="top-row">
+            <h1>Tidview</h1>
+            <button
+              type="button"
+              class="top-refresh"
+              @click=${this.handleRefresh}
+              ?disabled=${refreshDisabled}
+              aria-label="Refresh data"
+            >
+              ${this.isBusy ? "..." : "Refresh"}
+            </button>
+          </div>
+          ${hasSavedAddress
+            ? html`
+                <div class="address-chip" title=${trimmedAddress}>
+                  ${this.formatAddress(trimmedAddress)}
+                </div>
+              `
+            : html`
+                <div class="address-form">
+                  <label for="address">Your 0x address</label>
+                  <input
+                    id="address"
+                    type="text"
+                    placeholder="0x...40 hex chars"
+                    .value=${this.address}
+                    @input=${this.handleInput}
+                    autocomplete="off"
+                  />
+                  <div class="row">
+                    <button
+                      type="button"
+                      class="primary-button"
+                      @click=${this.handleSave}
+                      ?disabled=${this.isBusy}
+                    >
+                      ${this.isBusy ? "Working..." : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      @click=${this.handleRefresh}
+                      ?disabled=${this.isBusy}
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                </div>
+              `}
+          <div class="tabs">
+            <button
+              type="button"
+              class="tab-button ${isPositionsActive ? "active" : ""}"
+              @click=${() => this.setActiveTab("positions")}
+            >
+              Positions
+            </button>
+            <button
+              type="button"
+              class="tab-button ${isHistoryActive ? "active" : ""}"
+              @click=${() => this.setActiveTab("history")}
+            >
+              History
+            </button>
+          </div>
+        </div>
+        <div class="content">
+          ${errorMessage ? html`<div class="error">${errorMessage}</div>` : ""}
+          ${this.lastValue != null
+            ? html`<div class="value-card">
+                Latest value: $${Number(this.lastValue).toLocaleString()}
+              </div>`
+            : ""}
+          ${isPositionsActive
+            ? html`
+                <section class="tab-panel">
+                  <tidview-positions-panel
+                    .positions=${this.positions}
+                    .loading=${this.positionsLoading}
+                    .openMarket=${this.boundOpenMarket}
+                  ></tidview-positions-panel>
+                </section>
+              `
+            : ""}
+          ${isHistoryActive
+            ? html`
+                <section class="tab-panel">
+                  <tidview-history-panel
+                    .trades=${this.trades}
+                    .loading=${this.tradesLoading}
+                    .openMarket=${this.boundOpenMarket}
+                    .page=${this.historyPage}
+                    .pageSize=${HISTORY_PAGE_SIZE}
+                    @page-change=${this.onHistoryPageChange}
+                  ></tidview-history-panel>
+                </section>
+              `
+            : ""}
+          ${this.statusMessage
+            ? html`<div class="meta">${this.statusMessage}</div>`
+            : ""}
+          ${isPositionsActive && this.positionsUpdatedAt
+            ? html`<div class="meta">
+                Positions refreshed:
+                ${new Date(this.positionsUpdatedAt).toLocaleString()}
+              </div>`
+            : ""}
+          ${isHistoryActive && this.tradesUpdatedAt
+            ? html`<div class="meta">
+                History refreshed:
+                ${new Date(this.tradesUpdatedAt).toLocaleString()}
+              </div>`
+            : ""}
+        </div>
       </div>
-      ${this.lastValue != null
-        ? html`<div class="value">
-            Latest value: $${Number(this.lastValue).toLocaleString()}
-          </div>`
-        : ""}
-      <div class="tabs">
-        <button
-          type="button"
-          class="tab-button ${isPositionsActive ? "active" : ""}"
-          @click=${() => this.setActiveTab("positions")}
-        >
-          Positions
-        </button>
-        <button
-          type="button"
-          class="tab-button ${isHistoryActive ? "active" : ""}"
-          @click=${() => this.setActiveTab("history")}
-        >
-          History
-        </button>
-      </div>
-      ${isPositionsActive
-        ? html`
-            <section class="tab-panel">
-              <tidview-positions-panel
-                .positions=${this.positions}
-                .loading=${this.positionsLoading}
-                .openMarket=${this.boundOpenMarket}
-              ></tidview-positions-panel>
-            </section>
-          `
-        : ""}
-      ${isHistoryActive
-        ? html`
-            <section class="tab-panel">
-              <tidview-history-panel
-                .trades=${this.trades}
-                .loading=${this.tradesLoading}
-                .openMarket=${this.boundOpenMarket}
-                .page=${this.historyPage}
-                .pageSize=${HISTORY_PAGE_SIZE}
-                @page-change=${this.onHistoryPageChange}
-              ></tidview-history-panel>
-            </section>
-          `
-        : ""}
-      ${this.statusMessage
-        ? html`<div class="meta">${this.statusMessage}</div>`
-        : ""}
-      ${isPositionsActive && this.positionsUpdatedAt
-        ? html`<div class="meta">
-            Positions refreshed:
-            ${new Date(this.positionsUpdatedAt).toLocaleString()}
-          </div>`
-        : ""}
-      ${isHistoryActive && this.tradesUpdatedAt
-        ? html`<div class="meta">
-            History refreshed:
-            ${new Date(this.tradesUpdatedAt).toLocaleString()}
-          </div>`
-        : ""}
-      ${errorMessage ? html`<div class="error">${errorMessage}</div>` : ""}
     `;
   }
 }
