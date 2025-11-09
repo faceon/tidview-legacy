@@ -14,6 +14,7 @@ class TidviewHistoryPanel extends LitElement {
     openMarket: { type: Object },
     page: { type: Number },
     pageSize: { type: Number },
+    openOnly: { type: Boolean, attribute: "open-only", reflect: true },
   };
 
   constructor() {
@@ -23,6 +24,7 @@ class TidviewHistoryPanel extends LitElement {
     this.openMarket = null;
     this.page = 1;
     this.pageSize = 5;
+    this.openOnly = true;
   }
 
   static styles = css`
@@ -48,6 +50,27 @@ class TidviewHistoryPanel extends LitElement {
       font-size: 12px;
       font-weight: 400;
       color: #666;
+    }
+
+    .history-controls {
+      display: flex;
+      justify-content: flex-end;
+      font-size: 12px;
+      color: #444;
+    }
+
+    .history-controls label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .history-controls input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: #111;
     }
 
     .history-list {
@@ -116,6 +139,16 @@ class TidviewHistoryPanel extends LitElement {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
+    }
+
+    .history-tag {
+      font-size: 11px;
+      color: #555;
+      background: #f0f0f0;
+      padding: 2px 6px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
     }
 
     .history-trade-list {
@@ -210,6 +243,9 @@ class TidviewHistoryPanel extends LitElement {
           icon: trade.icon || "",
           latestTimestamp: trade.timestamp ?? null,
           trades: [],
+          closed: true,
+          _positionByOutcome: new Map(),
+          hasActivePosition: false,
         };
         groupsMap.set(key, group);
       }
@@ -225,19 +261,83 @@ class TidviewHistoryPanel extends LitElement {
       ) {
         group.latestTimestamp = trade.timestamp;
       }
+      const tradeClosed = trade?.isClosed === true;
+      group.closed = group.closed && tradeClosed;
+
+      const sizeValue = Number(trade?.size);
+      if (Number.isFinite(sizeValue) && sizeValue !== 0) {
+        const outcomeKey = trade?.outcome || "__default__";
+        const signedSize = trade?.side === "SELL" ? -sizeValue : sizeValue;
+        const positions = group._positionByOutcome;
+        const previous = positions.get(outcomeKey) || 0;
+        positions.set(outcomeKey, previous + signedSize);
+      }
 
       group.trades.push(trade);
     }
 
     const groups = Array.from(groupsMap.values());
 
+    const tolerance = 1e-6;
+
     groups.forEach((group) => {
       group.trades.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
+      if (group._positionByOutcome instanceof Map) {
+        group.hasActivePosition = Array.from(
+          group._positionByOutcome.values(),
+        ).some((value) => Math.abs(value) > tolerance);
+      } else {
+        group.hasActivePosition = false;
+      }
+      delete group._positionByOutcome;
     });
 
     groups.sort((a, b) => (b.latestTimestamp ?? 0) - (a.latestTimestamp ?? 0));
 
     return groups;
+  }
+
+  getVisibleGroups(allGroups = this.groupTrades(this.safeTrades)) {
+    if (!Array.isArray(allGroups)) {
+      return [];
+    }
+    if (!this.openOnly) {
+      return allGroups;
+    }
+    return allGroups.filter((group) => group.hasActivePosition);
+  }
+
+  countTrades(groups = []) {
+    return Array.isArray(groups)
+      ? groups.reduce((total, group) => total + group.trades.length, 0)
+      : 0;
+  }
+
+  handleOpenOnlyToggle(event) {
+    const next = Boolean(event?.target?.checked);
+    if (this.openOnly === next) {
+      return;
+    }
+
+    this.openOnly = next;
+
+    this.dispatchEvent(
+      new CustomEvent("open-only-change", {
+        detail: { openOnly: next },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+
+    if (this.page !== 1) {
+      this.dispatchEvent(
+        new CustomEvent("page-change", {
+          detail: { page: 1 },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    }
   }
 
   handleOpenMarket(slug, fallbackSlug) {
@@ -319,6 +419,11 @@ class TidviewHistoryPanel extends LitElement {
                     Latest ${formatTimestamp(group.latestTimestamp)}
                   </span>`
                 : ""}
+              ${group.closed
+                ? html`<span class="history-tag" aria-label="Closed market">
+                    Closed
+                  </span>`
+                : ""}
             </div>
           </div>
         </div>
@@ -338,8 +443,7 @@ class TidviewHistoryPanel extends LitElement {
       return;
     }
 
-    const trades = this.safeTrades;
-    const groups = this.groupTrades(trades);
+    const groups = this.getVisibleGroups();
     if (!groups.length) {
       return;
     }
@@ -393,12 +497,23 @@ class TidviewHistoryPanel extends LitElement {
     `;
   }
 
-  renderContent(groups, currentPage, totalPages) {
+  renderContent(
+    groups,
+    currentPage,
+    totalPages,
+    { hasTrades = false, filteredOutInactive = false } = {},
+  ) {
     if (this.loading) {
       return html`<div class="meta">Loading history...</div>`;
     }
 
     if (!groups.length) {
+      if (hasTrades && filteredOutInactive) {
+        return html`<div class="meta">
+          All markets are hidden by "Open market only". Uncheck it to view all
+          trades.
+        </div>`;
+      }
       return html`<div class="meta">No trades found for this address.</div>`;
     }
 
@@ -420,26 +535,46 @@ class TidviewHistoryPanel extends LitElement {
 
   render() {
     const trades = this.safeTrades;
-    const groups = this.groupTrades(trades);
+    const allGroups = this.groupTrades(trades);
+    const visibleGroups = this.getVisibleGroups(allGroups);
     const totalTrades = trades.length;
-    const totalMarkets = groups.length;
+    const visibleTrades = this.countTrades(visibleGroups);
+    const totalMarkets = visibleGroups.length;
+    const hiddenMarkets = Math.max(0, allGroups.length - visibleGroups.length);
+    const hiddenTrades = Math.max(0, totalTrades - visibleTrades);
     const pageSize = ensurePositiveInteger(this.pageSize, 5);
     const totalPages = totalMarkets ? Math.ceil(totalMarkets / pageSize) : 0;
     const currentPage = totalPages
       ? Math.min(Math.max(ensurePositiveInteger(this.page, 1), 1), totalPages)
       : 1;
+    const filterSummaryActive = this.openOnly && hiddenMarkets > 0;
+    const content = this.renderContent(visibleGroups, currentPage, totalPages, {
+      hasTrades: totalTrades > 0,
+      filteredOutInactive: filterSummaryActive,
+    });
 
     return html`
       <section class="history-section">
         <div class="history-header">
           <span>Trade History</span>
           <span>
-            ${totalMarkets
-              ? `${totalTrades} trades / ${totalMarkets} markets`
-              : `${totalTrades} trades`}
+            ${visibleTrades} trades / ${totalMarkets} markets
+            ${filterSummaryActive
+              ? html`<span>(${hiddenTrades} trades filtered)</span>`
+              : ""}
           </span>
         </div>
-        ${this.renderContent(groups, currentPage, totalPages)}
+        <div class="history-controls">
+          <label>
+            <input
+              type="checkbox"
+              @change=${(event) => this.handleOpenOnlyToggle(event)}
+              .checked=${this.openOnly}
+            />
+            Open market only
+          </label>
+        </div>
+        ${content}
       </section>
     `;
   }

@@ -567,6 +567,53 @@ class TidviewPopup extends LitElement {
     };
 
     const timestamp = toNumber(raw?.timestamp);
+    const normalizeStatus = (value) =>
+      typeof value === "string" ? value.trim().toLowerCase() : "";
+    const statusText = normalizeStatus(
+      raw?.marketStatus ||
+        raw?.market_status ||
+        raw?.status ||
+        raw?.eventStatus ||
+        raw?.state ||
+        raw?.resolution ||
+        raw?.event_state,
+    );
+    const closedStatuses = [
+      "closed",
+      "settled",
+      "resolved",
+      "ended",
+      "finished",
+      "resolved_market",
+      "graded",
+    ];
+    const isClosedFromStatus = statusText
+      ? closedStatuses.some((keyword) => statusText.includes(keyword))
+      : false;
+    const closedFlags = [
+      raw?.marketClosed,
+      raw?.market_closed,
+      raw?.closed,
+      raw?.isClosed,
+      raw?.resolved,
+      raw?.isResolved,
+      raw?.marketResolved,
+    ];
+    const isClosedFromFlags = closedFlags.some((value) => {
+      if (typeof value === "string") {
+        const normalized = value.trim().toLowerCase();
+        return (
+          normalized === "true" ||
+          normalized === "closed" ||
+          normalized === "resolved" ||
+          normalized === "settled" ||
+          normalized === "1" ||
+          normalized === "yes"
+        );
+      }
+      return value === true || value === 1;
+    });
+    const isClosed = isClosedFromStatus || isClosedFromFlags;
 
     return {
       id:
@@ -582,6 +629,7 @@ class TidviewPopup extends LitElement {
       size: toNumber(raw?.size),
       price: toNumber(raw?.price),
       timestamp: timestamp != null ? timestamp * 1000 : null,
+      isClosed,
     };
   }
   openMarket(slug, fallbackSlug) {
