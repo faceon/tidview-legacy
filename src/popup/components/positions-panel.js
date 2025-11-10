@@ -20,7 +20,6 @@ class TidviewPositionsPanel extends LitElement {
 
   constructor() {
     super();
-    this.dataset.component = "positions";
     this.positions = [];
     this.loading = false;
     this.openMarket = null;

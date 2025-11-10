@@ -20,7 +20,6 @@ class TidviewHistoryPanel extends LitElement {
 
   constructor() {
     super();
-    this.dataset.component = "history";
     this.trades = [];
     this.loading = false;
     this.openMarket = null;

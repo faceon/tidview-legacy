@@ -34,7 +34,6 @@ class TidviewPopup extends LitElement {
 
   constructor() {
     super();
-    this.dataset.component = "popup";
     this.address = "";
     this.addressPersisted = false;
     this.lastValue = null;
