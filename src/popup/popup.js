@@ -1,7 +1,7 @@
 import { LitElement, html, css, unsafeCSS } from "lit";
-import "./components/positions-panel.js";
 import { parseNumber } from "./components/format.js";
 import popupCss from "./popup.css";
+import "./components/positions-panel.js";
 
 const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
 
@@ -12,7 +12,6 @@ class TidviewPopup extends LitElement {
 
   static properties = {
     address: { type: String },
-    addressPersisted: { type: Boolean },
     lastValue: { type: Number },
     lastUpdated: { type: Number },
     lastError: { type: String },
@@ -21,13 +20,11 @@ class TidviewPopup extends LitElement {
     positions: { type: Array },
     positionsLoading: { type: Boolean },
     positionsUpdatedAt: { type: Number },
-    positionsError: { type: String },
   };
 
   constructor() {
     super();
     this.address = "";
-    this.addressPersisted = false;
     this.lastValue = null;
     this.lastUpdated = null;
     this.lastError = "";
@@ -36,7 +33,6 @@ class TidviewPopup extends LitElement {
     this.positions = [];
     this.positionsLoading = false;
     this.positionsUpdatedAt = null;
-    this.positionsError = "";
     this.boundOpenMarket = this.openMarket.bind(this);
   }
 
@@ -52,7 +48,6 @@ class TidviewPopup extends LitElement {
 
       const storedAddress = typeof address === "string" ? address.trim() : "";
       this.address = storedAddress;
-      this.addressPersisted = ADDRESS_REGEX.test(storedAddress);
       this.lastValue =
         typeof lastValue === "number" ? lastValue : parseNumber(lastValue);
       this.lastUpdated = typeof lastUpdated === "number" ? lastUpdated : null;
@@ -62,7 +57,7 @@ class TidviewPopup extends LitElement {
         this.statusMessage = `Last updated: ${new Date(this.lastUpdated).toLocaleString()}`;
       }
 
-      if (this.addressPersisted) {
+      if (ADDRESS_REGEX.test(storedAddress)) {
         await this.loadPositions({ address: this.address, silent: true });
       }
     } catch (error) {
@@ -79,19 +74,16 @@ class TidviewPopup extends LitElement {
     const trimmed = this.address.trim();
     if (!ADDRESS_REGEX.test(trimmed)) {
       this.lastError = "Please enter a valid 0x address.";
-      this.positionsError = "";
       this.statusMessage = "";
       return;
     }
 
     this.isBusy = true;
     this.lastError = "";
-    this.positionsError = "";
     this.statusMessage = "Saved. Refreshing...";
     try {
       await chrome.storage.sync.set({ address: trimmed });
       this.address = trimmed;
-      this.addressPersisted = true;
       const [badgeOk] = await Promise.all([
         this.refreshBalance({ recordTimestamp: true }),
         this.loadPositions({ address: trimmed }),
@@ -112,14 +104,12 @@ class TidviewPopup extends LitElement {
     const trimmed = this.address.trim();
     if (!ADDRESS_REGEX.test(trimmed)) {
       this.lastError = "Please enter a valid 0x address.";
-      this.positionsError = "";
       this.statusMessage = "";
       return;
     }
 
     this.isBusy = true;
     this.lastError = "";
-    this.positionsError = "";
     this.statusMessage = "Refreshing...";
     try {
       this.address = trimmed;
@@ -167,7 +157,6 @@ class TidviewPopup extends LitElement {
       if (!silent) {
         this.positions = [];
         this.positionsUpdatedAt = null;
-        this.positionsError = "Please enter a valid 0x address.";
         this.statusMessage = "";
       }
       return 0;
@@ -177,7 +166,6 @@ class TidviewPopup extends LitElement {
       if (!silent) {
         this.positions = [];
         this.positionsUpdatedAt = null;
-        this.positionsError = "Please enter a valid 0x address.";
         this.statusMessage = "";
       }
       return 0;
@@ -207,14 +195,12 @@ class TidviewPopup extends LitElement {
 
       this.positions = normalized;
       this.positionsUpdatedAt = Date.now();
-      this.positionsError = "";
       return normalized.length;
     } catch (error) {
       console.error("Failed to load positions", error);
       this.positions = [];
       this.positionsUpdatedAt = null;
       if (!silent) {
-        this.positionsError = error?.message || "Failed to load positions.";
         this.statusMessage = "";
       }
       if (!silent) {
@@ -277,13 +263,10 @@ class TidviewPopup extends LitElement {
   }
 
   render() {
-    const tabError = this.positionsError;
-    const errorMessage = this.lastError || tabError;
-
+    const errorMessage = this.lastError;
     const trimmedAddress =
       typeof this.address === "string" ? this.address.trim() : "";
-    const hasSavedAddress =
-      this.addressPersisted && ADDRESS_REGEX.test(trimmedAddress);
+    const hasSavedAddress = ADDRESS_REGEX.test(trimmedAddress);
     const refreshDisabled = this.isBusy || !hasSavedAddress;
 
     return html`
