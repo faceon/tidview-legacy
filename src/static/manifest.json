@@ -4,10 +4,10 @@
   "version": "0.0.1",
   "description": "Market tides, made visible - Chrome extension for Polymarket portfolio tracking",
   "action": {
-    "default_popup": "popup.html",
+    "default_state": "enabled",
     "default_title": "Toggle Tidview"
   },
-  "permissions": ["storage", "alarms"],
+  "permissions": ["storage", "alarms", "sidePanel"],
   "host_permissions": ["https://data-api.polymarket.com/*"],
   "background": {
     "service_worker": "background.js",

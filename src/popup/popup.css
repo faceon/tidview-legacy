@@ -38,7 +38,6 @@ body {
 
 .scroll-area {
   width: 360px;
-  max-height: 600px;
   background: #fff;
   overflow-y: auto;
   display: flex;

@@ -1,9 +1,17 @@
 const API_BASE = "https://data-api.polymarket.com";
 const POLL_MINUTES = 5;
+const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
 
 // Extension 설치 시 초기 설정: 배지 색, 알람 스케줄, 첫 리프레시
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.action.setBadgeBackgroundColor({ color: "#2d2d2d" });
+  // 개발 모드에서는 사이드패널, 배포 모드에서는 팝업 사용
+  if (IS_DEVELOPMENT) {
+    chrome.sidePanel.setOptions({ path: "popup.html" });
+    chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+  } else {
+    chrome.action.setPopup({ popup: "popup.html" });
+  }
+  chrome.action.setBadgeBackgroundColor({ color: "#4873ffff" });
   scheduleAlarm();
   refreshNow();
 });
