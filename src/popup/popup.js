@@ -1,11 +1,9 @@
 import { LitElement, html, css, unsafeCSS } from "lit";
 import "./components/positions-panel.js";
-import "./components/history-panel.js";
 import { parseNumber } from "./components/format.js";
 import popupCss from "./popup.css";
 
 const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
-const HISTORY_PAGE_SIZE = 5;
 
 class TidviewPopup extends LitElement {
   static styles = css`
@@ -24,12 +22,6 @@ class TidviewPopup extends LitElement {
     positionsLoading: { type: Boolean },
     positionsUpdatedAt: { type: Number },
     positionsError: { type: String },
-    trades: { type: Array },
-    tradesLoading: { type: Boolean },
-    tradesUpdatedAt: { type: Number },
-    tradesError: { type: String },
-    activeTab: { type: String },
-    historyPage: { type: Number },
   };
 
   constructor() {
@@ -45,12 +37,6 @@ class TidviewPopup extends LitElement {
     this.positionsLoading = false;
     this.positionsUpdatedAt = null;
     this.positionsError = "";
-    this.trades = [];
-    this.tradesLoading = false;
-    this.tradesUpdatedAt = null;
-    this.tradesError = "";
-    this.activeTab = "positions";
-    this.historyPage = 1;
     this.boundOpenMarket = this.openMarket.bind(this);
   }
 
@@ -89,43 +75,11 @@ class TidviewPopup extends LitElement {
     this.address = event.target.value;
   }
 
-  async setActiveTab(tab) {
-    if (this.activeTab === tab) return;
-    this.activeTab = tab;
-
-    if (tab === "positions") {
-      if (
-        this.address &&
-        ADDRESS_REGEX.test(this.address) &&
-        !this.positionsLoading &&
-        this.positions.length === 0
-      ) {
-        await this.loadPositions({ address: this.address, silent: true });
-      }
-      return;
-    }
-
-    if (
-      tab === "history" &&
-      this.address &&
-      ADDRESS_REGEX.test(this.address) &&
-      !this.tradesLoading &&
-      this.trades.length === 0
-    ) {
-      try {
-        await this.loadTrades({ address: this.address });
-      } catch (error) {
-        console.error("Failed to load trades on tab switch", error);
-      }
-    }
-  }
-
   async handleSave() {
     const trimmed = this.address.trim();
     if (!ADDRESS_REGEX.test(trimmed)) {
       this.lastError = "Please enter a valid 0x address.";
       this.positionsError = "";
-      this.tradesError = "";
       this.statusMessage = "";
       return;
     }
@@ -138,19 +92,10 @@ class TidviewPopup extends LitElement {
       await chrome.storage.sync.set({ address: trimmed });
       this.address = trimmed;
       this.addressPersisted = true;
-      const fetches = [
+      const [badgeOk] = await Promise.all([
         this.refreshBalance({ recordTimestamp: true }),
         this.loadPositions({ address: trimmed }),
-      ];
-      if (this.activeTab === "history" || this.trades.length > 0) {
-        fetches.push(
-          this.loadTrades({
-            address: trimmed,
-            silent: this.activeTab !== "history",
-          }),
-        );
-      }
-      const [badgeOk] = await Promise.all(fetches);
+      ]);
       if (badgeOk) {
         this.statusMessage = `Refreshed at ${new Date().toLocaleString()}`;
       }
@@ -168,7 +113,6 @@ class TidviewPopup extends LitElement {
     if (!ADDRESS_REGEX.test(trimmed)) {
       this.lastError = "Please enter a valid 0x address.";
       this.positionsError = "";
-      this.tradesError = "";
       this.statusMessage = "";
       return;
     }
@@ -179,17 +123,10 @@ class TidviewPopup extends LitElement {
     this.statusMessage = "Refreshing...";
     try {
       this.address = trimmed;
-      const fetches = [
+      const [badgeOk] = await Promise.all([
         this.refreshBalance({ recordTimestamp: true }),
         this.loadPositions({ address: trimmed }),
-      ];
-      fetches.push(
-        this.loadTrades({
-          address: trimmed,
-          silent: this.activeTab !== "history",
-        }),
-      );
-      const [badgeOk] = await Promise.all(fetches);
+      ]);
       if (badgeOk) {
         this.statusMessage = `Refreshed at ${new Date().toLocaleString()}`;
       }
@@ -289,71 +226,6 @@ class TidviewPopup extends LitElement {
     }
   }
 
-  async loadTrades({ address = this.address, silent = false } = {}) {
-    const trimmed = address?.trim();
-
-    if (!trimmed) {
-      if (!silent) {
-        this.trades = [];
-        this.tradesUpdatedAt = null;
-        this.tradesError = "Please enter a valid 0x address.";
-        this.statusMessage = "";
-      }
-      return 0;
-    }
-
-    if (!ADDRESS_REGEX.test(trimmed)) {
-      if (!silent) {
-        this.trades = [];
-        this.tradesUpdatedAt = null;
-        this.tradesError = "Please enter a valid 0x address.";
-        this.statusMessage = "";
-      }
-      return 0;
-    }
-
-    this.tradesLoading = true;
-
-    try {
-      const url = `https://data-api.polymarket.com/trades?user=${encodeURIComponent(
-        trimmed,
-      )}`;
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error(`Trades request failed with HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (!Array.isArray(data)) {
-        throw new Error("Unexpected trades response format");
-      }
-
-      const normalized = data.map((entry) => this.normalizeTrade(entry));
-      normalized.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
-
-      this.trades = normalized;
-      this.tradesUpdatedAt = Date.now();
-      this.tradesError = "";
-      this.historyPage = 1;
-      return normalized.length;
-    } catch (error) {
-      console.error("Failed to load trades", error);
-      this.trades = [];
-      this.tradesUpdatedAt = null;
-      if (!silent) {
-        this.tradesError = error?.message || "Failed to load trade history.";
-        this.statusMessage = "";
-      }
-      if (!silent) {
-        throw error;
-      }
-      return 0;
-    } finally {
-      this.tradesLoading = false;
-    }
-  }
-
   normalizePosition(raw) {
     const id =
       raw?.asset ||
@@ -382,78 +254,6 @@ class TidviewPopup extends LitElement {
     };
   }
 
-  normalizeTrade(raw) {
-    const toNumber = (value) => {
-      const num = Number(value);
-      return Number.isFinite(num) ? num : null;
-    };
-
-    const timestamp = toNumber(raw?.timestamp);
-    const normalizeStatus = (value) =>
-      typeof value === "string" ? value.trim().toLowerCase() : "";
-    const statusText = normalizeStatus(
-      raw?.marketStatus ||
-        raw?.market_status ||
-        raw?.status ||
-        raw?.eventStatus ||
-        raw?.state ||
-        raw?.resolution ||
-        raw?.event_state,
-    );
-    const closedStatuses = [
-      "closed",
-      "settled",
-      "resolved",
-      "ended",
-      "finished",
-      "resolved_market",
-      "graded",
-    ];
-    const isClosedFromStatus = statusText
-      ? closedStatuses.some((keyword) => statusText.includes(keyword))
-      : false;
-    const closedFlags = [
-      raw?.marketClosed,
-      raw?.market_closed,
-      raw?.closed,
-      raw?.isClosed,
-      raw?.resolved,
-      raw?.isResolved,
-      raw?.marketResolved,
-    ];
-    const isClosedFromFlags = closedFlags.some((value) => {
-      if (typeof value === "string") {
-        const normalized = value.trim().toLowerCase();
-        return (
-          normalized === "true" ||
-          normalized === "closed" ||
-          normalized === "resolved" ||
-          normalized === "settled" ||
-          normalized === "1" ||
-          normalized === "yes"
-        );
-      }
-      return value === true || value === 1;
-    });
-    const isClosed = isClosedFromStatus || isClosedFromFlags;
-
-    return {
-      id:
-        raw?.transactionHash ||
-        raw?.asset ||
-        `trade-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      title: raw?.title || raw?.slug || "Unnamed market",
-      outcome: raw?.outcome || "",
-      slug: raw?.slug || "",
-      eventSlug: raw?.eventSlug || "",
-      icon: raw?.icon || "",
-      side: (raw?.side || "").toUpperCase(),
-      size: toNumber(raw?.size),
-      price: toNumber(raw?.price),
-      timestamp: timestamp != null ? timestamp * 1000 : null,
-      isClosed,
-    };
-  }
   openMarket(slug, fallbackSlug) {
     const finalSlug = slug || fallbackSlug;
     if (!finalSlug) return;
@@ -462,17 +262,6 @@ class TidviewPopup extends LitElement {
       chrome.tabs.create({ url });
     } else {
       window.open(url, "_blank", "noopener,noreferrer");
-    }
-  }
-
-  onHistoryPageChange(event) {
-    const nextPage = Number(event?.detail?.page);
-    if (!Number.isFinite(nextPage)) {
-      return;
-    }
-    const normalized = Math.max(1, Math.floor(nextPage));
-    if (normalized !== this.historyPage) {
-      this.historyPage = normalized;
     }
   }
 
@@ -488,9 +277,7 @@ class TidviewPopup extends LitElement {
   }
 
   render() {
-    const isPositionsActive = this.activeTab === "positions";
-    const isHistoryActive = this.activeTab === "history";
-    const tabError = isHistoryActive ? this.tradesError : this.positionsError;
+    const tabError = this.positionsError;
     const errorMessage = this.lastError || tabError;
 
     const trimmedAddress =
@@ -552,19 +339,8 @@ class TidviewPopup extends LitElement {
                 </div>
               `}
           <div class="tabs">
-            <button
-              type="button"
-              class="tab-button ${isPositionsActive ? "active" : ""}"
-              @click=${() => this.setActiveTab("positions")}
-            >
+            <button type="button" class="tab-button active" disabled>
               Positions
-            </button>
-            <button
-              type="button"
-              class="tab-button ${isHistoryActive ? "active" : ""}"
-              @click=${() => this.setActiveTab("history")}
-            >
-              History
             </button>
           </div>
         </div>
@@ -575,44 +351,20 @@ class TidviewPopup extends LitElement {
                 Latest value: $${Number(this.lastValue).toLocaleString()}
               </div>`
             : ""}
-          ${isPositionsActive
-            ? html`
-                <section class="tab-panel">
-                  <tidview-positions-panel
-                    .positions=${this.positions}
-                    .loading=${this.positionsLoading}
-                    .openMarket=${this.boundOpenMarket}
-                  ></tidview-positions-panel>
-                </section>
-              `
-            : ""}
-          ${isHistoryActive
-            ? html`
-                <section class="tab-panel">
-                  <tidview-history-panel
-                    .trades=${this.trades}
-                    .loading=${this.tradesLoading}
-                    .openMarket=${this.boundOpenMarket}
-                    .page=${this.historyPage}
-                    .pageSize=${HISTORY_PAGE_SIZE}
-                    @page-change=${this.onHistoryPageChange}
-                  ></tidview-history-panel>
-                </section>
-              `
-            : ""}
+          <section class="tab-panel">
+            <tidview-positions-panel
+              .positions=${this.positions}
+              .loading=${this.positionsLoading}
+              .openMarket=${this.boundOpenMarket}
+            ></tidview-positions-panel>
+          </section>
           ${this.statusMessage
             ? html`<div class="meta">${this.statusMessage}</div>`
             : ""}
-          ${isPositionsActive && this.positionsUpdatedAt
+          ${this.positionsUpdatedAt
             ? html`<div class="meta">
                 Positions refreshed:
                 ${new Date(this.positionsUpdatedAt).toLocaleString()}
-              </div>`
-            : ""}
-          ${isHistoryActive && this.tradesUpdatedAt
-            ? html`<div class="meta">
-                History refreshed:
-                ${new Date(this.tradesUpdatedAt).toLocaleString()}
               </div>`
             : ""}
         </div>
