@@ -33,6 +33,12 @@ class TidviewPositionsPanel extends LitElement {
     return Array.isArray(this.positions) ? this.positions : [];
   }
 
+  handleOpenMarket(slug, eventSlug) {
+    if (this.openMarket) {
+      this.openMarket(slug, eventSlug);
+    }
+  }
+
   get summary() {
     const positions = this.safePositions;
     const totalCurrentValue = positions.reduce(
