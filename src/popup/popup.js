@@ -1,193 +1,15 @@
-import { LitElement, html, css } from "lit";
+import { LitElement, html, css, unsafeCSS } from "lit";
 import "./components/positions-panel.js";
 import "./components/history-panel.js";
 import { parseNumber } from "./components/format.js";
+import popupCss from "./popup.css";
 
 const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
 const HISTORY_PAGE_SIZE = 5;
 
 class TidviewPopup extends LitElement {
   static styles = css`
-    :host {
-      display: block;
-      width: 360px;
-      max-height: 600px;
-      box-sizing: border-box;
-      font-family:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
-        "Apple Color Emoji", "Segoe UI Emoji";
-      color: #111;
-      background: #fff;
-    }
-
-    .scroll-area {
-      max-height: 600px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .top-controls {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      background: #fff;
-      padding: 14px;
-      border-bottom: 1px solid #ececec;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .top-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    h1 {
-      font-size: 16px;
-      margin: 0;
-    }
-
-    .address-chip {
-      font-size: 12px;
-      color: #333;
-      background: #f3f3f3;
-      border-radius: 999px;
-      padding: 4px 10px;
-      width: max-content;
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .address-form {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    label {
-      font-size: 12px;
-      color: #444;
-    }
-
-    input[type="text"] {
-      width: 100%;
-      padding: 8px 10px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      box-sizing: border-box;
-      font-size: 13px;
-    }
-
-    .row {
-      display: flex;
-      gap: 8px;
-    }
-
-    button {
-      border: none;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
-      transition:
-        background 0.2s ease,
-        opacity 0.2s ease;
-    }
-
-    .primary-button {
-      flex: 1;
-      padding: 9px 12px;
-      background: #111;
-      color: #fff;
-    }
-
-    .secondary-button {
-      flex: 1;
-      padding: 9px 12px;
-      background: #e9e9e9;
-      color: #111;
-    }
-
-    .top-refresh {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: #111;
-      color: #fff;
-      font-size: 12px;
-      line-height: 1;
-      min-width: 0;
-    }
-
-    button[disabled] {
-      opacity: 0.5;
-      cursor: default;
-    }
-
-    .tabs {
-      display: flex;
-      gap: 8px;
-      border-bottom: 1px solid #e4e4e4;
-      padding-bottom: 2px;
-    }
-
-    .tab-button {
-      flex: 1;
-      padding: 10px 0;
-      background: transparent;
-      border: none;
-      border-bottom: 2px solid transparent;
-      font-size: 13px;
-      font-weight: 600;
-      color: #666;
-      cursor: pointer;
-    }
-
-    .tab-button.active {
-      border-bottom-color: #111;
-      color: #111;
-    }
-
-    .content {
-      padding: 16px 14px 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
-
-    .value-card {
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid #f1f1f1;
-      background: #fafafa;
-      font-size: 14px;
-    }
-
-    .tab-panel {
-      display: block;
-    }
-
-    .meta {
-      font-size: 12px;
-      color: #666;
-    }
-
-    .error {
-      padding: 12px;
-      border-radius: 10px;
-      background: #ffe6e6;
-      color: #b00020;
-      font-size: 12px;
-    }
+    ${unsafeCSS(popupCss)}
   `;
 
   static properties = {
@@ -212,6 +34,7 @@ class TidviewPopup extends LitElement {
 
   constructor() {
     super();
+    this.dataset.component = "popup";
     this.address = "";
     this.addressPersisted = false;
     this.lastValue = null;

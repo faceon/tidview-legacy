@@ -1,4 +1,4 @@
-import { LitElement, html, css } from "lit";
+import { LitElement, html, css, unsafeCSS } from "lit";
 import { repeat } from "lit/directives/repeat.js";
 import {
   formatCurrency,
@@ -9,6 +9,7 @@ import {
   trendClass,
   parseNumber,
 } from "./format.js";
+import sharedCss from "../popup.css";
 
 class TidviewPositionsPanel extends LitElement {
   static properties = {
@@ -19,165 +20,14 @@ class TidviewPositionsPanel extends LitElement {
 
   constructor() {
     super();
+    this.dataset.component = "positions";
     this.positions = [];
     this.loading = false;
     this.openMarket = null;
   }
 
   static styles = css`
-    :host {
-      display: block;
-    }
-
-    .portfolio {
-      padding-top: 12px;
-      border-top: 1px solid #eee;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .portfolio-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .portfolio-header span {
-      font-size: 12px;
-      font-weight: 400;
-      color: #666;
-    }
-
-    .portfolio-summary {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      border: 1px solid #f1f1f1;
-      border-radius: 10px;
-      padding: 10px 12px;
-      background: #fafafa;
-    }
-
-    .summary-block {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      font-size: 12px;
-      color: #555;
-    }
-
-    .summary-value {
-      font-size: 16px;
-      font-weight: 600;
-      color: #111;
-    }
-
-    .summary-pnl {
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .summary-pnl span {
-      font-size: 12px;
-      font-weight: 400;
-      margin-left: 4px;
-    }
-
-    .positions-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-    }
-
-    .position-row {
-      display: flex;
-      gap: 12px;
-      padding: 12px 0;
-      border-top: 1px solid #f2f2f2;
-      cursor: pointer;
-    }
-
-    .position-row:first-child {
-      border-top: none;
-      padding-top: 0;
-    }
-
-    .position-thumb {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      object-fit: cover;
-      flex-shrink: 0;
-      background: #f4f4f4;
-    }
-
-    .position-thumb.placeholder {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      color: #777;
-    }
-
-    .position-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .position-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: #111;
-      margin: 0;
-    }
-
-    .position-subtitle {
-      font-size: 11px;
-      color: #666;
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .position-stats {
-      text-align: right;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 12px;
-    }
-
-    .position-stat-value {
-      font-size: 14px;
-      font-weight: 600;
-      color: #111;
-    }
-
-    .position-stat-pnl {
-      font-size: 11px;
-    }
-
-    .positive {
-      color: #107c41;
-    }
-
-    .negative {
-      color: #b00020;
-    }
-
-    .neutral {
-      color: #444;
-    }
-
-    .meta {
-      font-size: 12px;
-      color: #666;
-    }
+    ${unsafeCSS(sharedCss)}
   `;
 
   get safePositions() {
@@ -206,20 +56,6 @@ class TidviewPositionsPanel extends LitElement {
       totalCashPnl,
       totalPercent,
     };
-  }
-
-  handleOpenMarket(slug, fallbackSlug) {
-    if (typeof this.openMarket === "function") {
-      this.openMarket(slug, fallbackSlug);
-    }
-
-    this.dispatchEvent(
-      new CustomEvent("market-open", {
-        detail: { slug, fallbackSlug },
-        bubbles: true,
-        composed: true,
-      }),
-    );
   }
 
   renderPosition(position) {

@@ -29,6 +29,10 @@ module.exports = {
           from: "src/popup/popup.html",
           to: "popup.html",
         },
+        {
+          from: "src/popup/popup.css",
+          to: "popup.css",
+        },
       ],
     }),
   ],
@@ -38,6 +42,10 @@ module.exports = {
         test: /\.js$/,
         exclude: /node_modules/,
         type: "javascript/esm",
+      },
+      {
+        test: /\.css$/i,
+        type: "asset/source",
       },
     ],
   },

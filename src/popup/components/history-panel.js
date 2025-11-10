@@ -1,4 +1,4 @@
-import { LitElement, html, css } from "lit";
+import { LitElement, html, css, unsafeCSS } from "lit";
 import { repeat } from "lit/directives/repeat.js";
 import {
   formatNumber,
@@ -6,6 +6,7 @@ import {
   formatSide,
   ensurePositiveInteger,
 } from "./format.js";
+import sharedCss from "../popup.css";
 
 class TidviewHistoryPanel extends LitElement {
   static properties = {
@@ -19,6 +20,7 @@ class TidviewHistoryPanel extends LitElement {
 
   constructor() {
     super();
+    this.dataset.component = "history";
     this.trades = [];
     this.loading = false;
     this.openMarket = null;
@@ -28,199 +30,7 @@ class TidviewHistoryPanel extends LitElement {
   }
 
   static styles = css`
-    :host {
-      display: block;
-    }
-
-    .history-section {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .history-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .history-header span {
-      font-size: 12px;
-      font-weight: 400;
-      color: #666;
-    }
-
-    .history-controls {
-      display: flex;
-      justify-content: flex-end;
-      font-size: 12px;
-      color: #444;
-    }
-
-    .history-controls label {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .history-controls input[type="checkbox"] {
-      width: 14px;
-      height: 14px;
-      accent-color: #111;
-    }
-
-    .history-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-    }
-
-    .position-thumb {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      object-fit: cover;
-      flex-shrink: 0;
-      background: #f4f4f4;
-    }
-
-    .position-thumb.placeholder {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      color: #777;
-    }
-
-    .history-group {
-      padding: 12px 0;
-      border-top: 1px solid #f2f2f2;
-    }
-
-    .history-group:first-child {
-      border-top: none;
-      padding-top: 0;
-    }
-
-    .history-group-header {
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      cursor: pointer;
-    }
-
-    .history-group-header:focus-visible,
-    .history-trade-row:focus-visible {
-      outline: 2px solid #111;
-      outline-offset: 2px;
-    }
-
-    .history-group-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 12px;
-    }
-
-    .history-group-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: #111;
-    }
-
-    .history-group-meta {
-      font-size: 11px;
-      color: #666;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .history-tag {
-      font-size: 11px;
-      color: #555;
-      background: #f0f0f0;
-      padding: 2px 6px;
-      border-radius: 999px;
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
-    }
-
-    .history-trade-list {
-      list-style: none;
-      margin: 10px 0 0;
-      padding: 0 0 0 52px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .history-trade-row {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 12px;
-      cursor: pointer;
-    }
-
-    .history-trade-top {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .history-trade-meta {
-      font-size: 11px;
-      color: #666;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .history-side.buy {
-      color: #107c41;
-    }
-
-    .history-side.sell {
-      color: #b00020;
-    }
-
-    .history-pagination {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 12px;
-      font-size: 12px;
-    }
-
-    .pagination-button {
-      padding: 6px 10px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      background: #f7f7f7;
-      color: #111;
-      cursor: pointer;
-    }
-
-    .pagination-button[disabled] {
-      opacity: 0.6;
-      cursor: default;
-    }
-
-    .pagination-info {
-      color: #555;
-    }
-
-    .meta {
-      font-size: 12px;
-      color: #666;
-    }
+    ${unsafeCSS(sharedCss)}
   `;
 
   get safeTrades() {
