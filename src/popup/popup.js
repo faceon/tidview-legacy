@@ -12,6 +12,7 @@ class TidviewPopup extends LitElement {
 
   static properties = {
     address: { type: String },
+    hasAddress: { type: Boolean },
     lastValue: { type: Number },
     lastUpdated: { type: Number },
     lastError: { type: String },
@@ -25,6 +26,7 @@ class TidviewPopup extends LitElement {
   constructor() {
     super();
     this.address = "";
+    this.hasAddress = false;
     this.lastValue = null;
     this.lastUpdated = null;
     this.lastError = "";
@@ -46,8 +48,8 @@ class TidviewPopup extends LitElement {
       const { address, lastValue, lastUpdated, lastError } =
         (await chrome.runtime.sendMessage({ type: "getStatus" })) || {};
 
-      const storedAddress = typeof address === "string" ? address.trim() : "";
-      this.address = storedAddress;
+      this.address = typeof address === "string" ? address.trim() : "";
+      this.hasAddress = ADDRESS_REGEX.test(this.address);
       this.lastValue =
         typeof lastValue === "number" ? lastValue : parseNumber(lastValue);
       this.lastUpdated = typeof lastUpdated === "number" ? lastUpdated : null;
@@ -57,7 +59,7 @@ class TidviewPopup extends LitElement {
         this.statusMessage = `Last updated: ${new Date(this.lastUpdated).toLocaleString()}`;
       }
 
-      if (ADDRESS_REGEX.test(storedAddress)) {
+      if (this.hasAddress) {
         await this.loadPositions({ address: this.address, silent: true });
       }
     } catch (error) {
@@ -263,11 +265,7 @@ class TidviewPopup extends LitElement {
   }
 
   render() {
-    const errorMessage = this.lastError;
-    const trimmedAddress =
-      typeof this.address === "string" ? this.address.trim() : "";
-    const hasSavedAddress = ADDRESS_REGEX.test(trimmedAddress);
-    const refreshDisabled = this.isBusy || !hasSavedAddress;
+    const refreshDisabled = this.isBusy || !this.hasAddress;
 
     return html`
       <div class="scroll-area">
@@ -284,10 +282,10 @@ class TidviewPopup extends LitElement {
               ${this.isBusy ? "..." : "Refresh"}
             </button>
           </div>
-          ${hasSavedAddress
+          ${this.hasAddress
             ? html`
-                <div class="address-chip" title=${trimmedAddress}>
-                  ${this.formatAddress(trimmedAddress)}
+                <div class="address-chip" title=${this.address}>
+                  ${this.formatAddress(this.address)}
                 </div>
               `
             : html`
@@ -321,14 +319,11 @@ class TidviewPopup extends LitElement {
                   </div>
                 </div>
               `}
-          <div class="tabs">
-            <button type="button" class="tab-button active" disabled>
-              Positions
-            </button>
-          </div>
         </div>
         <div class="content">
-          ${errorMessage ? html`<div class="error">${errorMessage}</div>` : ""}
+          ${this.lastError
+            ? html`<div class="error">${this.lastError}</div>`
+            : ""}
           ${this.lastValue != null
             ? html`<div class="value-card">
                 Latest value: $${Number(this.lastValue).toLocaleString()}
