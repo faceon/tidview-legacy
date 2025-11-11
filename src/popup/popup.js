@@ -30,7 +30,7 @@ class TidviewPopup extends LitElement {
   constructor() {
     super();
     this.address = "";
-    this.hasAddress = false;
+    this.hasAddress = true;
     this.lastValue = null;
     this.lastUpdated = null;
     this.lastError = "";
@@ -48,11 +48,22 @@ class TidviewPopup extends LitElement {
         <div class="top-controls">
           <div class="top-row">
             <h2>Portfolio</h2>
-            <!-- md outline button with page reload icon -->
+
+            <!-- wallet address -->
+            <div
+              class="address-chip"
+              title=${this.address}
+              ?hidden=${!this.hasAddress}
+            >
+              ${this.formatAddress(this.address)}
+            </div>
+
+            <!-- page reload button for debugging -->
             <md-outlined-button @click=${() => location.reload()}>
               <md-icon>↺</md-icon>
             </md-outlined-button>
 
+            <!-- data fetch refresh button -->
             <md-filled-tonal-button
               type="button"
               class="top-refresh"
@@ -62,43 +73,38 @@ class TidviewPopup extends LitElement {
               ${this.isBusy ? "..." : "Refresh"}
             </md-filled-tonal-button>
           </div>
-          ${this.hasAddress
-            ? html`
-                <div class="address-chip" title=${this.address}>
-                  ${this.formatAddress(this.address)}
-                </div>
-              `
-            : html`
-                <div class="address-form">
-                  <label for="address">Your 0x address</label>
-                  <input
-                    id="address"
-                    type="text"
-                    placeholder="0x...40 hex chars"
-                    .value=${this.address}
-                    @input=${this.handleInput}
-                    autocomplete="off"
-                  />
-                  <div class="row">
-                    <button
-                      type="button"
-                      class="primary-button"
-                      @click=${this.handleSave}
-                      ?disabled=${this.isBusy}
-                    >
-                      ${this.isBusy ? "Working..." : "Save"}
-                    </button>
-                    <button
-                      type="button"
-                      class="secondary-button"
-                      @click=${this.handleRefresh}
-                      ?disabled=${this.isBusy}
-                    >
-                      Refresh
-                    </button>
-                  </div>
-                </div>
-              `}
+
+          <!-- wallet address -->
+
+          <div class="address-form" ?hidden=${this.hasAddress}>
+            <label for="address">Your 0x address</label>
+            <input
+              id="address"
+              type="text"
+              placeholder="0x...40 hex chars"
+              .value=${this.address}
+              @input=${this.handleInput}
+              autocomplete="off"
+            />
+            <div class="row">
+              <button
+                type="button"
+                class="primary-button"
+                @click=${this.handleSave}
+                ?disabled=${this.isBusy}
+              >
+                ${this.isBusy ? "Working..." : "Save"}
+              </button>
+              <button
+                type="button"
+                class="secondary-button"
+                @click=${this.handleRefresh}
+                ?disabled=${this.isBusy}
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
         </div>
         <div class="content">
           ${this.lastError
@@ -141,7 +147,6 @@ class TidviewPopup extends LitElement {
         (await chrome.runtime.sendMessage({ type: "getStatus" })) || {};
 
       this.address = typeof address === "string" ? address.trim() : "";
-      this.hasAddress = ADDRESS_REGEX.test(this.address);
       this.lastValue =
         typeof lastValue === "number" ? lastValue : parseNumber(lastValue);
       this.lastUpdated = typeof lastUpdated === "number" ? lastUpdated : null;
