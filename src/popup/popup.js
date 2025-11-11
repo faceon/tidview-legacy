@@ -2,6 +2,8 @@ import { LitElement, html, css, unsafeCSS } from "lit";
 import { parseNumber } from "./components/format.js";
 import popupCss from "./popup.css";
 import "./components/positions-panel.js";
+// import md-filled-tonal-button from "@material/web/button/filled-tonal-button.js";
+import "@material/web/button/filled-tonal-button.js";
 
 const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
 
@@ -265,22 +267,24 @@ class TidviewPopup extends LitElement {
   }
 
   render() {
-    const refreshDisabled = this.isBusy || !this.hasAddress;
-
     return html`
       <div class="scroll-area">
         <div class="top-controls">
           <div class="top-row">
-            <h1>Tidview</h1>
-            <button
+            <h2>Portfolio</h2>
+            <!-- md outline button with page reload icon -->
+            <md-outlined-button>
+              <md-icon slot="icon">refresh</md-icon>
+            </md-outlined-button>
+
+            <md-filled-tonal-button
               type="button"
               class="top-refresh"
               @click=${this.handleRefresh}
-              ?disabled=${refreshDisabled}
-              aria-label="Refresh data"
+              ?disabled=${this.isBusy || !this.hasAddress}
             >
               ${this.isBusy ? "..." : "Refresh"}
-            </button>
+            </md-filled-tonal-button>
           </div>
           ${this.hasAddress
             ? html`
