@@ -30,12 +30,13 @@ class TidviewPopup extends LitElement {
   constructor() {
     super();
     this.address = "";
-    this.hasAddress = true;
+    this.hasAddress = false;
     this.lastValue = null;
     this.lastUpdated = null;
     this.lastError = "";
     this.statusMessage = "";
     this.isBusy = false;
+    /** @type {any[]} */
     this.positions = [];
     this.positionsLoading = false;
     this.positionsUpdatedAt = null;
@@ -74,9 +75,11 @@ class TidviewPopup extends LitElement {
             </md-filled-tonal-button>
           </div>
 
-          <!-- wallet address -->
-
-          <div class="address-form" ?hidden=${this.hasAddress}>
+          <!-- wallet address input -->
+          <div
+            class="address-form"
+            style="display: ${this.hasAddress ? "none" : "block"}"
+          >
             <label for="address">Your 0x address</label>
             <input
               id="address"
@@ -117,7 +120,7 @@ class TidviewPopup extends LitElement {
             : ""}
           <section class="tab-panel">
             <tidview-positions-panel
-              .positions=${this.positions}
+              .positions=${/** @type {any} */ (this.positions)}
               .loading=${this.positionsLoading}
               .openMarket=${this.boundOpenMarket}
             ></tidview-positions-panel>
@@ -147,6 +150,7 @@ class TidviewPopup extends LitElement {
         (await chrome.runtime.sendMessage({ type: "getStatus" })) || {};
 
       this.address = typeof address === "string" ? address.trim() : "";
+      this.hasAddress = ADDRESS_REGEX.test(this.address);
       this.lastValue =
         typeof lastValue === "number" ? lastValue : parseNumber(lastValue);
       this.lastUpdated = typeof lastUpdated === "number" ? lastUpdated : null;
