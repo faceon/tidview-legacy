@@ -2,7 +2,9 @@ import { LitElement, html, css, unsafeCSS } from "lit";
 import { parseNumber } from "./components/format.js";
 import popupCss from "./popup.css";
 import "./components/positions-panel.js";
-// import md-filled-tonal-button from "@material/web/button/filled-tonal-button.js";
+import "@material/web/iconButton/filled-icon-button.js";
+import "@material/web/icon/icon.js";
+import "@material/web/button/outlined-button.js";
 import "@material/web/button/filled-tonal-button.js";
 
 const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
@@ -38,6 +40,94 @@ class TidviewPopup extends LitElement {
     this.positionsLoading = false;
     this.positionsUpdatedAt = null;
     this.boundOpenMarket = this.openMarket.bind(this);
+  }
+
+  render() {
+    return html`
+      <div class="scroll-area">
+        <div class="top-controls">
+          <div class="top-row">
+            <h2>Portfolio</h2>
+            <!-- md outline button with page reload icon -->
+            <md-outlined-button @click=${() => location.reload()}>
+              <md-icon>↺</md-icon>
+            </md-outlined-button>
+
+            <md-filled-tonal-button
+              type="button"
+              class="top-refresh"
+              @click=${this.handleRefresh}
+              ?disabled=${this.isBusy || !this.hasAddress}
+            >
+              ${this.isBusy ? "..." : "Refresh"}
+            </md-filled-tonal-button>
+          </div>
+          ${this.hasAddress
+            ? html`
+                <div class="address-chip" title=${this.address}>
+                  ${this.formatAddress(this.address)}
+                </div>
+              `
+            : html`
+                <div class="address-form">
+                  <label for="address">Your 0x address</label>
+                  <input
+                    id="address"
+                    type="text"
+                    placeholder="0x...40 hex chars"
+                    .value=${this.address}
+                    @input=${this.handleInput}
+                    autocomplete="off"
+                  />
+                  <div class="row">
+                    <button
+                      type="button"
+                      class="primary-button"
+                      @click=${this.handleSave}
+                      ?disabled=${this.isBusy}
+                    >
+                      ${this.isBusy ? "Working..." : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      @click=${this.handleRefresh}
+                      ?disabled=${this.isBusy}
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                </div>
+              `}
+        </div>
+        <div class="content">
+          ${this.lastError
+            ? html`<div class="error">${this.lastError}</div>`
+            : ""}
+          ${this.lastValue != null
+            ? html`<div class="value-card">
+                Latest value: $${Number(this.lastValue).toLocaleString()}
+              </div>`
+            : ""}
+          <section class="tab-panel">
+            <tidview-positions-panel
+              .positions=${this.positions}
+              .loading=${this.positionsLoading}
+              .openMarket=${this.boundOpenMarket}
+            ></tidview-positions-panel>
+          </section>
+          ${this.statusMessage
+            ? html`<div class="meta">${this.statusMessage}</div>`
+            : ""}
+          ${this.positionsUpdatedAt
+            ? html`<div class="meta">
+                Positions refreshed:
+                ${new Date(this.positionsUpdatedAt).toLocaleString()}
+              </div>`
+            : ""}
+        </div>
+      </div>
+    `;
   }
 
   connectedCallback() {
@@ -264,94 +354,6 @@ class TidviewPopup extends LitElement {
       return trimmed;
     }
     return `${trimmed.slice(0, 6)}...${trimmed.slice(-4)}`;
-  }
-
-  render() {
-    return html`
-      <div class="scroll-area">
-        <div class="top-controls">
-          <div class="top-row">
-            <h2>Portfolio</h2>
-            <!-- md outline button with page reload icon -->
-            <md-outlined-button>
-              <md-icon slot="icon">refresh</md-icon>
-            </md-outlined-button>
-
-            <md-filled-tonal-button
-              type="button"
-              class="top-refresh"
-              @click=${this.handleRefresh}
-              ?disabled=${this.isBusy || !this.hasAddress}
-            >
-              ${this.isBusy ? "..." : "Refresh"}
-            </md-filled-tonal-button>
-          </div>
-          ${this.hasAddress
-            ? html`
-                <div class="address-chip" title=${this.address}>
-                  ${this.formatAddress(this.address)}
-                </div>
-              `
-            : html`
-                <div class="address-form">
-                  <label for="address">Your 0x address</label>
-                  <input
-                    id="address"
-                    type="text"
-                    placeholder="0x...40 hex chars"
-                    .value=${this.address}
-                    @input=${this.handleInput}
-                    autocomplete="off"
-                  />
-                  <div class="row">
-                    <button
-                      type="button"
-                      class="primary-button"
-                      @click=${this.handleSave}
-                      ?disabled=${this.isBusy}
-                    >
-                      ${this.isBusy ? "Working..." : "Save"}
-                    </button>
-                    <button
-                      type="button"
-                      class="secondary-button"
-                      @click=${this.handleRefresh}
-                      ?disabled=${this.isBusy}
-                    >
-                      Refresh
-                    </button>
-                  </div>
-                </div>
-              `}
-        </div>
-        <div class="content">
-          ${this.lastError
-            ? html`<div class="error">${this.lastError}</div>`
-            : ""}
-          ${this.lastValue != null
-            ? html`<div class="value-card">
-                Latest value: $${Number(this.lastValue).toLocaleString()}
-              </div>`
-            : ""}
-          <section class="tab-panel">
-            <tidview-positions-panel
-              .positions=${this.positions}
-              .loading=${this.positionsLoading}
-              .openMarket=${this.boundOpenMarket}
-            ></tidview-positions-panel>
-          </section>
-          ${this.statusMessage
-            ? html`<div class="meta">${this.statusMessage}</div>`
-            : ""}
-          ${this.positionsUpdatedAt
-            ? html`<div class="meta">
-                Positions refreshed:
-                ${new Date(this.positionsUpdatedAt).toLocaleString()}
-              </div>`
-            : ""}
-        </div>
-      </div>
-    `;
   }
 }
 

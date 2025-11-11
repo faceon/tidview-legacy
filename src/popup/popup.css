@@ -42,6 +42,7 @@ body {
   --md-filled-tonal-button-container-height: var(--button-height);
   --md-outlined-button-container-height: var(--button-height);
   --md-text-button-container-height: var(--button-height);
+  --md-filled-icon-button-container-height: var(--button-height);
 }
 
 :host *,
