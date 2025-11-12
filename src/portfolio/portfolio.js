@@ -9,7 +9,7 @@ import "@material/web/button/filled-tonal-button.js";
 
 const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
 
-class Tidviewportfolio extends LitElement {
+class TidviewPortfolio extends LitElement {
   static styles = css`
     ${unsafeCSS(portfolioCss)}
   `;
@@ -521,4 +521,4 @@ class Tidviewportfolio extends LitElement {
   }
 }
 
-customElements.define("tidview-portfolio", Tidviewportfolio);
+customElements.define("tidview-portfolio", TidviewPortfolio);
