@@ -17,7 +17,7 @@ class TidviewPortfolio extends LitElement {
   static properties = {
     address: { type: String },
     hasAddress: { type: Boolean },
-    lastValue: { type: Number },
+    totalValue: { type: Number },
     lastUpdated: { type: Number },
     lastError: { type: String },
     statusMessage: { type: String },
@@ -35,7 +35,7 @@ class TidviewPortfolio extends LitElement {
     super();
     this.address = "";
     this.hasAddress = false;
-    this.lastValue = null;
+    this.totalValue = null;
     this.lastUpdated = null;
     this.lastError = "";
     this.statusMessage = "";
@@ -53,7 +53,7 @@ class TidviewPortfolio extends LitElement {
   render() {
     const positionsValueNumber = parseNumber(this.positionsValue);
     const cashValueNumber = parseNumber(this.cashBalance);
-    const storedTotal = parseNumber(this.lastValue);
+    const storedTotal = parseNumber(this.totalValue);
     const computedTotal =
       storedTotal != null
         ? storedTotal
@@ -192,7 +192,7 @@ class TidviewPortfolio extends LitElement {
     try {
       const {
         address,
-        lastValue,
+        totalValue,
         lastUpdated,
         lastError,
         positionsValue,
@@ -210,8 +210,8 @@ class TidviewPortfolio extends LitElement {
 
       this.address = typeof address === "string" ? address.trim() : "";
       this.hasAddress = ADDRESS_REGEX.test(this.address);
-      this.lastValue =
-        typeof lastValue === "number" ? lastValue : parseNumber(lastValue);
+      this.totalValue =
+        typeof totalValue === "number" ? totalValue : parseNumber(totalValue);
       this.lastUpdated = typeof lastUpdated === "number" ? lastUpdated : null;
       this.lastError = lastError ?? "";
 
@@ -254,8 +254,8 @@ class TidviewPortfolio extends LitElement {
       }
     }
 
-    if (Object.prototype.hasOwnProperty.call(changes, "lastValue")) {
-      this.lastValue = parseNumber(changes.lastValue.newValue);
+    if (Object.prototype.hasOwnProperty.call(changes, "totalValue")) {
+      this.totalValue = parseNumber(changes.totalValue.newValue);
     }
 
     if (Object.prototype.hasOwnProperty.call(changes, "positionsValue")) {
@@ -366,7 +366,7 @@ class TidviewPortfolio extends LitElement {
   async refreshBalance({ recordTimestamp = false } = {}) {
     const res = await chrome.runtime.sendMessage({ type: "refresh" });
     if (res?.ok) {
-      this.lastValue = parseNumber(res.value);
+      this.totalValue = parseNumber(res.value);
       this.positionsValue = parseNumber(res.positionsValue);
       this.cashBalance = parseNumber(res.cashBalance);
       if (recordTimestamp) {

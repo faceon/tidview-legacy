@@ -37,7 +37,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     chrome.storage.sync.get(
       [
         "address",
-        "lastValue",
+        "totalValue",
         "lastUpdated",
         "lastError",
         "positionsValue",
@@ -92,7 +92,7 @@ async function refreshNow() {
     const errorMessage = partialErrors.length ? partialErrors.join("; ") : null;
 
     await chrome.storage.sync.set({
-      lastValue: totalValue,
+      totalValue,
       positionsValue,
       cashBalance,
       lastUpdated: Date.now(),
@@ -106,7 +106,7 @@ async function refreshNow() {
 
     return {
       ok: true,
-      value: totalValue,
+      totalValue,
       positionsValue,
       cashBalance,
       error: errorMessage,
@@ -121,20 +121,16 @@ async function refreshNow() {
   }
 }
 
-// Positions API 호출 함수: 포지션 총합 계산
 async function fetchPositionsValue(address) {
-  const url = `${API_BASE}/positions?user=${encodeURIComponent(address)}`;
+  const url = `${API_BASE}/value?user=${encodeURIComponent(address)}`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`Positions HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`Value HTTP ${res.status}`);
   const json = await res.json();
-  if (!Array.isArray(json)) {
-    throw new Error("Unexpected positions response format");
+  const value = toNumber(json?.at(0).value);
+  if (value == null) {
+    throw new Error("Unexpected value response format");
   }
-
-  return json.reduce((sum, entry) => {
-    const parsed = toNumber(entry?.currentValue);
-    return parsed != null ? sum + parsed : sum;
-  }, 0);
+  return value;
 }
 
 // Polygon RPC 호출 함수: USDC 잔액 조회
