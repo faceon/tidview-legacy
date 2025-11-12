@@ -109,7 +109,9 @@ class TidviewPopup extends LitElement {
           </div>
 
           <div class="${!!this.lastValue ? "" : "display-none"}">
-            Latest value: $${Number(this.lastValue).toLocaleString()}
+            <!-- Total: latest positions value + cash -->
+            Positions: $${Number(this.lastValue).toLocaleString()}
+            <!-- Cash: latest cash value only -->
           </div>
         </div>
 
