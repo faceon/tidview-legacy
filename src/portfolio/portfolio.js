@@ -1,6 +1,6 @@
 import { LitElement, html, css, unsafeCSS } from "lit";
 import { parseNumber, formatCurrency } from "./components/format.js";
-import popupCss from "./popup.css";
+import portfolioCss from "./portfolio.css";
 import "./components/positions-section.js";
 import "@material/web/iconButton/filled-icon-button.js";
 import "@material/web/icon/icon.js";
@@ -9,9 +9,9 @@ import "@material/web/button/filled-tonal-button.js";
 
 const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
 
-class TidviewPopup extends LitElement {
+class Tidviewportfolio extends LitElement {
   static styles = css`
-    ${unsafeCSS(popupCss)}
+    ${unsafeCSS(portfolioCss)}
   `;
 
   static properties = {
@@ -223,7 +223,7 @@ class TidviewPopup extends LitElement {
         await this.loadPositions({ address: this.address, silent: true });
       }
     } catch (error) {
-      console.error("Failed to load popup status", error);
+      console.error("Failed to load portfolio status", error);
       this.lastError = "Unable to load current status.";
     }
   }
@@ -521,4 +521,4 @@ class TidviewPopup extends LitElement {
   }
 }
 
-customElements.define("tidview-popup", TidviewPopup);
+customElements.define("tidview-portfolio", Tidviewportfolio);

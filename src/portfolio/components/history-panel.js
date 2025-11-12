@@ -6,7 +6,7 @@ import {
   formatSide,
   ensurePositiveInteger,
 } from "./format.js";
-import sharedCss from "../popup.css";
+import sharedCss from "../portfolio.css";
 
 class TidviewHistoryPanel extends LitElement {
   static properties = {

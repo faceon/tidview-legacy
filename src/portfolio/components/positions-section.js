@@ -9,7 +9,7 @@ import {
   trendClass,
   parseNumber,
 } from "./format.js";
-import sharedCss from "../popup.css";
+import sharedCss from "../portfolio.css";
 
 class PositionsSection extends LitElement {
   static properties = {

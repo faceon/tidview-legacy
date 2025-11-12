@@ -10,10 +10,10 @@ const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
 chrome.runtime.onInstalled.addListener(() => {
   // 개발 모드에서는 사이드패널, 배포 모드에서는 팝업 사용
   if (IS_DEVELOPMENT) {
-    chrome.sidePanel.setOptions({ path: "popup.html" });
+    chrome.sidePanel.setOptions({ path: "portfolio.html" });
     chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
   } else {
-    chrome.action.setPopup({ popup: "popup.html" });
+    chrome.action.setPopup({ popup: "portfolio.html" });
   }
   chrome.action.setBadgeBackgroundColor({ color: "#4873ffff" });
   scheduleAlarm();

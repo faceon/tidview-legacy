@@ -5,7 +5,7 @@
 Chrome MV3 extension displaying Polymarket portfolio values as toolbar badge:
 
 - **Background Service Worker** (`src/background/background.js`): API polling, badge updates, data persistence
-- **Popup UI** (`src/popup/`): LitElement-based wallet configuration interface
+- **portfolio UI** (`src/portfolio/`): LitElement-based wallet configuration interface
 - **Manifest** (`src/static/manifest.json`): MV3 configuration
 
 ## Key Patterns
@@ -13,7 +13,7 @@ Chrome MV3 extension displaying Polymarket portfolio values as toolbar badge:
 ### Message Passing
 
 ```javascript
-// Popup → Background
+// portfolio → Background
 await chrome.runtime.sendMessage({ type: "refresh" });
 
 // Background listener
@@ -72,8 +72,8 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 ## File Structure
 
 - `src/background/background.js`: Core logic & API
-- `src/popup/popup.html`: Popup container referencing custom element
-- `src/popup/popup.js`: LitElement popup web component
+- `src/portfolio/portfolio.html`: portfolio container referencing custom element
+- `src/portfolio/portfolio.js`: LitElement portfolio web component
 - `src/static/manifest.json`: Extension config
 - `src/static/icons/`: Icons (16px, 48px, 128px)
 - `dist/`: Built files (webpack)

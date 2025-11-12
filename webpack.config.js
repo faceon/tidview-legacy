@@ -11,7 +11,7 @@ module.exports = {
   devtool: "source-map",
   entry: {
     background: "./src/background/background.js",
-    popup: [litSuppressor, "./src/popup/popup.js"],
+    portfolio: [litSuppressor, "./src/portfolio/portfolio.js"],
   },
   output: {
     path: path.resolve(__dirname, "dist"),
@@ -26,12 +26,12 @@ module.exports = {
           to: ".",
         },
         {
-          from: "src/popup/popup.html",
-          to: "popup.html",
+          from: "src/portfolio/portfolio.html",
+          to: "portfolio.html",
         },
         {
-          from: "src/popup/popup.css",
-          to: "popup.css",
+          from: "src/portfolio/portfolio.css",
+          to: "portfolio.css",
         },
       ],
     }),
