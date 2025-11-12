@@ -235,7 +235,7 @@ body {
   color: var(--color-text);
 }
 
-.content {
+.positions {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);

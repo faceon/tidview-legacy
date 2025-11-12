@@ -25,8 +25,8 @@ class TidviewPortfolio extends LitElement {
     positions: { type: Array },
     positionsLoading: { type: Boolean },
     positionsUpdatedAt: { type: Number },
-    copied: { type: Boolean },
     positionsValue: { type: Number },
+    copied: { type: Boolean },
     cashBalance: { type: Number },
   };
 
@@ -39,13 +39,12 @@ class TidviewPortfolio extends LitElement {
     this.lastError = "";
     this.statusMessage = "";
     this.isBusy = false;
-    /** @type {any[]} */
     this.positions = [];
     this.positionsLoading = false;
     this.positionsUpdatedAt = null;
+    this.positionsValue = null;
     this.boundOpenMarket = this.openMarket.bind(this);
     this.copied = false;
-    this.positionsValue = null;
     this.cashBalance = null;
     this.boundStorageChange = this.handleStorageChange.bind(this);
   }
@@ -151,10 +150,10 @@ class TidviewPortfolio extends LitElement {
           </div>
         </div>
 
-        <!-- content -->
-        <div class="content">
+        <!-- positions -->
+        <div class="positions">
           <positions-section
-            .positions=${/** @type {any} */ (this.positions)}
+            .positions=${this.positions}
             .loading=${this.positionsLoading}
             .openMarket=${this.boundOpenMarket}
           ></positions-section>
