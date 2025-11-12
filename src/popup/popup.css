@@ -133,11 +133,12 @@ body {
   background: var(--bg-muted);
   border-radius: var(--radius-pill);
   padding: var(--space-xs) var(--space-md);
-  width: max-content;
+  width: 70px;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: pointer;
 }
 
 .address-form {

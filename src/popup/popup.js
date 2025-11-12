@@ -25,6 +25,7 @@ class TidviewPopup extends LitElement {
     positions: { type: Array },
     positionsLoading: { type: Boolean },
     positionsUpdatedAt: { type: Number },
+    copied: { type: Boolean },
   };
 
   constructor() {
@@ -41,6 +42,7 @@ class TidviewPopup extends LitElement {
     this.positionsLoading = false;
     this.positionsUpdatedAt = null;
     this.boundOpenMarket = this.openMarket.bind(this);
+    this.copied = false;
   }
 
   render() {
@@ -53,8 +55,9 @@ class TidviewPopup extends LitElement {
             <div
               class="address-chip ${this.hasAddress ? "" : "display-none"}"
               title=${this.address}
+              @click=${this.handleCopyAddress}
             >
-              ${this.formatAddress(this.address)}
+              ${this.copied ? "copied" : this.formatAddress(this.address)}
             </div>
 
             <md-outlined-button @click=${() => location.reload()}>
@@ -350,6 +353,21 @@ class TidviewPopup extends LitElement {
     } else {
       window.open(url, "_blank", "noopener,noreferrer");
     }
+  }
+
+  handleCopyAddress() {
+    if (!this.hasAddress) return;
+    navigator.clipboard
+      .writeText(this.address)
+      .then(() => {
+        this.copied = true;
+        setTimeout(() => {
+          this.copied = false;
+        }, 2000); // 2초 후 원래 표시로 복귀
+      })
+      .catch((error) => {
+        console.error("Failed to copy address", error);
+      });
   }
 
   formatAddress(address) {
