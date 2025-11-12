@@ -11,7 +11,7 @@ import {
 } from "./format.js";
 import sharedCss from "../popup.css";
 
-class TidviewPositionsPanel extends LitElement {
+class PositionsSection extends LitElement {
   static properties = {
     positions: { type: Array },
     loading: { type: Boolean },
@@ -186,4 +186,4 @@ class TidviewPositionsPanel extends LitElement {
   }
 }
 
-customElements.define("tidview-positions-panel", TidviewPositionsPanel);
+customElements.define("positions-section", PositionsSection);

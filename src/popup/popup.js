@@ -1,7 +1,7 @@
 import { LitElement, html, css, unsafeCSS } from "lit";
 import { parseNumber } from "./components/format.js";
 import popupCss from "./popup.css";
-import "./components/positions-panel.js";
+import "./components/positions-section.js";
 import "@material/web/iconButton/filled-icon-button.js";
 import "@material/web/icon/icon.js";
 import "@material/web/button/outlined-button.js";
@@ -46,25 +46,21 @@ class TidviewPopup extends LitElement {
   render() {
     return html`
       <div class="scroll-area">
+        <!-- top row with title, address chip, and buttons -->
         <div class="top-controls">
           <div class="top-row">
             <h2>Portfolio</h2>
-
-            <!-- wallet address -->
             <div
-              class="address-chip"
+              class="address-chip ${this.hasAddress ? "" : "display-none"}"
               title=${this.address}
-              ?hidden=${!this.hasAddress}
             >
               ${this.formatAddress(this.address)}
             </div>
 
-            <!-- page reload button for debugging -->
             <md-outlined-button @click=${() => location.reload()}>
               <md-icon>↺</md-icon>
             </md-outlined-button>
 
-            <!-- data fetch refresh button -->
             <md-filled-tonal-button
               type="button"
               class="top-refresh"
@@ -75,11 +71,7 @@ class TidviewPopup extends LitElement {
             </md-filled-tonal-button>
           </div>
 
-          <!-- wallet address input -->
-          <div
-            class="address-form"
-            style="display: ${this.hasAddress ? "none" : "block"}"
-          >
+          <div class="address-form ${this.hasAddress ? "display-none" : ""}">
             <label for="address">Your 0x address</label>
             <input
               id="address"
@@ -109,22 +101,26 @@ class TidviewPopup extends LitElement {
             </div>
           </div>
         </div>
+
+        <!-- value card -->
+        <div class="value-card">
+          <div class="error ${!this.lastError ? "display-none" : ""}">
+            ${this.lastError}
+          </div>
+
+          <div class="${!!this.lastValue ? "" : "display-none"}">
+            Latest value: $${Number(this.lastValue).toLocaleString()}
+          </div>
+        </div>
+
+        <!-- content -->
         <div class="content">
-          ${this.lastError
-            ? html`<div class="error">${this.lastError}</div>`
-            : ""}
-          ${this.lastValue != null
-            ? html`<div class="value-card">
-                Latest value: $${Number(this.lastValue).toLocaleString()}
-              </div>`
-            : ""}
-          <section class="tab-panel">
-            <tidview-positions-panel
-              .positions=${/** @type {any} */ (this.positions)}
-              .loading=${this.positionsLoading}
-              .openMarket=${this.boundOpenMarket}
-            ></tidview-positions-panel>
-          </section>
+          <positions-section
+            .positions=${/** @type {any} */ (this.positions)}
+            .loading=${this.positionsLoading}
+            .openMarket=${this.boundOpenMarket}
+          ></positions-section>
+
           ${this.statusMessage
             ? html`<div class="meta">${this.statusMessage}</div>`
             : ""}

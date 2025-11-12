@@ -79,6 +79,10 @@ body {
   cursor: default;
 }
 
+.display-none {
+  display: none !important;
+}
+
 .meta {
   font-size: 12px;
   color: var(--color-muted);
@@ -121,10 +125,6 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
-}
-
-.top-controls h1 {
-  font-size: 16px;
 }
 
 .address-chip {
@@ -244,14 +244,9 @@ body {
 
 .value-card {
   padding: var(--space-md);
-  border-radius: var(--radius-md);
   border: var(--border-subtle);
   background: var(--bg-subtle);
   font-size: 14px;
-}
-
-.tab-panel {
-  display: block;
 }
 
 .error {
