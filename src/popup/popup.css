@@ -250,6 +250,29 @@ body {
   font-size: 14px;
 }
 
+.value-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.value-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--color-subtle);
+}
+
+.value-row span:last-child {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.value-total span:last-child {
+  font-size: 16px;
+}
+
 .error {
   padding: var(--space-md);
   border-radius: var(--radius-md);

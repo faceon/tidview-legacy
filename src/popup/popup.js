@@ -1,5 +1,5 @@
 import { LitElement, html, css, unsafeCSS } from "lit";
-import { parseNumber } from "./components/format.js";
+import { parseNumber, formatCurrency } from "./components/format.js";
 import popupCss from "./popup.css";
 import "./components/positions-section.js";
 import "@material/web/iconButton/filled-icon-button.js";
@@ -26,6 +26,8 @@ class TidviewPopup extends LitElement {
     positionsLoading: { type: Boolean },
     positionsUpdatedAt: { type: Number },
     copied: { type: Boolean },
+    positionsValue: { type: Number },
+    cashBalance: { type: Number },
   };
 
   constructor() {
@@ -43,9 +45,27 @@ class TidviewPopup extends LitElement {
     this.positionsUpdatedAt = null;
     this.boundOpenMarket = this.openMarket.bind(this);
     this.copied = false;
+    this.positionsValue = null;
+    this.cashBalance = null;
   }
 
   render() {
+    const positionsValueNumber = parseNumber(this.positionsValue);
+    const cashValueNumber = parseNumber(this.cashBalance);
+    const storedTotal = parseNumber(this.lastValue);
+    const computedTotal =
+      storedTotal != null
+        ? storedTotal
+        : positionsValueNumber != null || cashValueNumber != null
+          ? (positionsValueNumber ?? 0) + (cashValueNumber ?? 0)
+          : null;
+
+    const totalDisplay = formatCurrency(computedTotal);
+    const positionsDisplay = formatCurrency(positionsValueNumber);
+    const cashDisplay = formatCurrency(cashValueNumber);
+    const hasPortfolioValues =
+      totalDisplay !== "—" || positionsDisplay !== "—" || cashDisplay !== "—";
+
     return html`
       <div class="scroll-area">
         <!-- top row with title, address chip, and buttons -->
@@ -111,10 +131,22 @@ class TidviewPopup extends LitElement {
             ${this.lastError}
           </div>
 
-          <div class="${!!this.lastValue ? "" : "display-none"}">
+          <div class="${hasPortfolioValues ? "" : "display-none"}">
             <!-- Total: latest positions value + cash -->
-            Positions: $${Number(this.lastValue).toLocaleString()}
-            <!-- Cash: latest cash value only -->
+            <div class="value-rows">
+              <div class="value-row value-total">
+                <span>Total</span>
+                <span>${totalDisplay}</span>
+              </div>
+              <div class="value-row">
+                <span>Positions</span>
+                <span>${positionsDisplay}</span>
+              </div>
+              <div class="value-row">
+                <span>Cash</span>
+                <span>${cashDisplay}</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -147,8 +179,23 @@ class TidviewPopup extends LitElement {
 
   async loadStatus() {
     try {
-      const { address, lastValue, lastUpdated, lastError } =
-        (await chrome.runtime.sendMessage({ type: "getStatus" })) || {};
+      const {
+        address,
+        lastValue,
+        lastUpdated,
+        lastError,
+        positionsValue,
+        cashBalance,
+      } = (await chrome.runtime.sendMessage({ type: "getStatus" })) || {};
+
+      this.positionsValue =
+        typeof positionsValue === "number"
+          ? positionsValue
+          : parseNumber(positionsValue);
+      this.cashBalance =
+        typeof cashBalance === "number"
+          ? cashBalance
+          : parseNumber(cashBalance);
 
       this.address = typeof address === "string" ? address.trim() : "";
       this.hasAddress = ADDRESS_REGEX.test(this.address);
@@ -237,11 +284,13 @@ class TidviewPopup extends LitElement {
     const res = await chrome.runtime.sendMessage({ type: "refresh" });
     if (res?.ok) {
       this.lastValue = parseNumber(res.value);
+      this.positionsValue = parseNumber(res.positionsValue);
+      this.cashBalance = parseNumber(res.cashBalance);
       if (recordTimestamp) {
         this.lastUpdated = Date.now();
         this.statusMessage = `Updated: ${new Date(this.lastUpdated).toLocaleString()}`;
       }
-      this.lastError = "";
+      this.lastError = res?.error ? String(res.error) : "";
       return true;
     } else {
       this.lastError = res?.error || "Unknown error";
@@ -263,6 +312,7 @@ class TidviewPopup extends LitElement {
         this.positionsUpdatedAt = null;
         this.statusMessage = "";
       }
+      this.positionsValue = null;
       return 0;
     }
 
@@ -272,6 +322,7 @@ class TidviewPopup extends LitElement {
         this.positionsUpdatedAt = null;
         this.statusMessage = "";
       }
+      this.positionsValue = null;
       return 0;
     }
 
@@ -299,11 +350,16 @@ class TidviewPopup extends LitElement {
 
       this.positions = normalized;
       this.positionsUpdatedAt = Date.now();
+      this.positionsValue = normalized.reduce((sum, pos) => {
+        const value = parseNumber(pos?.currentValue);
+        return value != null ? sum + value : sum;
+      }, 0);
       return normalized.length;
     } catch (error) {
       console.error("Failed to load positions", error);
       this.positions = [];
       this.positionsUpdatedAt = null;
+      this.positionsValue = null;
       if (!silent) {
         this.statusMessage = "";
       }

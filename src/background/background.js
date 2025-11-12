@@ -1,4 +1,8 @@
 const API_BASE = "https://data-api.polymarket.com";
+const POLYGON_RPC_URL = "https://polygon-rpc.com/";
+const USDC_CONTRACT = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
+const ERC20_BALANCE_OF_SELECTOR = "0x70a08231";
+const USDC_DECIMALS = 6;
 const POLL_MINUTES = 5;
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
 
@@ -29,7 +33,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg?.type === "getStatus") {
     chrome.storage.sync.get(
-      ["address", "lastValue", "lastUpdated", "lastError"],
+      [
+        "address",
+        "lastValue",
+        "lastUpdated",
+        "lastError",
+        "positionsValue",
+        "cashBalance",
+      ],
       sendResponse,
     );
     return true;
@@ -52,17 +63,61 @@ async function refreshNow() {
   }
 
   try {
-    const value = await fetchValue(address);
+    const [positionsResult, cashResult] = await Promise.allSettled([
+      fetchPositionsValue(address),
+      fetchCashBalance(address),
+    ]);
+
+    const positionsValue =
+      positionsResult.status === "fulfilled" ? positionsResult.value : null;
+    const cashBalance =
+      cashResult.status === "fulfilled" ? cashResult.value : null;
+
+    if (positionsValue == null && cashBalance == null) {
+      const reasons =
+        [positionsResult, cashResult]
+          .filter((result) => result.status === "rejected")
+          .map((result) => String(result.reason?.message || result.reason))
+          .join("; ") || "Unknown error";
+      throw new Error(reasons);
+    }
+
+    const totalValue =
+      (typeof positionsValue === "number" ? positionsValue : 0) +
+      (typeof cashBalance === "number" ? cashBalance : 0);
+
+    const partialErrors = [];
+    if (positionsValue == null && positionsResult.status === "rejected") {
+      partialErrors.push(
+        positionsResult.reason?.message || String(positionsResult.reason),
+      );
+    }
+    if (cashBalance == null && cashResult.status === "rejected") {
+      partialErrors.push(
+        cashResult.reason?.message || String(cashResult.reason),
+      );
+    }
+
+    const errorMessage = partialErrors.length ? partialErrors.join("; ") : null;
+
     await chrome.storage.sync.set({
-      lastValue: value,
+      lastValue: totalValue,
+      positionsValue,
+      cashBalance,
       lastUpdated: Date.now(),
-      lastError: null,
+      lastError: errorMessage,
     });
     updateBadge(
-      formatBadge(value),
-      `Polymarket Value: $${Number(value).toLocaleString()}`,
+      formatBadge(totalValue),
+      `Portfolio Total: $${Number(totalValue).toLocaleString()}`,
     );
-    return { ok: true, value };
+    return {
+      ok: true,
+      value: totalValue,
+      positionsValue,
+      cashBalance,
+      error: errorMessage,
+    };
   } catch (e) {
     await chrome.storage.sync.set({
       lastError: String(e),
@@ -73,18 +128,71 @@ async function refreshNow() {
   }
 }
 
-// API 호출 함수 (분리)
-async function fetchValue(address) {
-  const url = `${API_BASE}/value?user=${encodeURIComponent(address)}`;
+// Positions API 호출 함수: 포지션 총합 계산
+async function fetchPositionsValue(address) {
+  const url = `${API_BASE}/positions?user=${encodeURIComponent(address)}`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`Positions HTTP ${res.status}`);
   const json = await res.json();
-  const value =
-    Array.isArray(json) && json[0]?.value
-      ? Number(json[0].value)
-      : Number(json?.value);
-  if (isNaN(value)) throw new Error("Unexpected response format");
-  return value;
+  if (!Array.isArray(json)) {
+    throw new Error("Unexpected positions response format");
+  }
+
+  return json.reduce((sum, entry) => {
+    const parsed = toNumber(entry?.currentValue);
+    return parsed != null ? sum + parsed : sum;
+  }, 0);
+}
+
+// Polygon RPC 호출 함수: USDC 잔액 조회
+async function fetchCashBalance(address) {
+  const normalizedAddress = address.trim().toLowerCase().replace(/^0x/, "");
+  const data = ERC20_BALANCE_OF_SELECTOR + normalizedAddress.padStart(64, "0");
+
+  const res = await fetch(POLYGON_RPC_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "eth_call",
+      params: [
+        {
+          to: USDC_CONTRACT,
+          data,
+        },
+        "latest",
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Polygon RPC HTTP ${res.status}`);
+  }
+
+  const json = await res.json();
+  if (json?.error) {
+    throw new Error(json.error?.message || "Polygon RPC error");
+  }
+
+  const hexValue = json?.result;
+  if (typeof hexValue !== "string") {
+    throw new Error("Invalid Polygon RPC response");
+  }
+
+  let balance;
+  try {
+    const raw = BigInt(hexValue);
+    balance = Number(raw) / 10 ** USDC_DECIMALS;
+  } catch (error) {
+    throw new Error("Failed to parse USDC balance");
+  }
+
+  if (!Number.isFinite(balance)) {
+    throw new Error("USDC balance is not a finite number");
+  }
+
+  return balance;
 }
 
 // 배지 업데이트 함수 (분리)
@@ -102,4 +210,11 @@ function formatBadge(v) {
     return (rounded / 1000).toFixed(1).replace(/\.0$/, "") + "k";
   if (rounded < 1000000) return Math.round(rounded / 1000) + "k";
   return Math.round(rounded / 1000000) + "M";
+}
+
+// 숫자 파서 (안전한 변환)
+function toNumber(value) {
+  if (value == null) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
