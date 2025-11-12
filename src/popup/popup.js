@@ -47,6 +47,7 @@ class TidviewPopup extends LitElement {
     this.copied = false;
     this.positionsValue = null;
     this.cashBalance = null;
+    this.boundStorageChange = this.handleStorageChange.bind(this);
   }
 
   render() {
@@ -174,7 +175,17 @@ class TidviewPopup extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    if (chrome?.storage?.onChanged) {
+      chrome.storage.onChanged.addListener(this.boundStorageChange);
+    }
     this.loadStatus();
+  }
+
+  disconnectedCallback() {
+    if (chrome?.storage?.onChanged) {
+      chrome.storage.onChanged.removeListener(this.boundStorageChange);
+    }
+    super.disconnectedCallback();
   }
 
   async loadStatus() {
@@ -214,6 +225,78 @@ class TidviewPopup extends LitElement {
     } catch (error) {
       console.error("Failed to load popup status", error);
       this.lastError = "Unable to load current status.";
+    }
+  }
+
+  handleStorageChange(changes, areaName) {
+    if (areaName !== "sync") {
+      return;
+    }
+
+    let shouldUpdateStatus = false;
+
+    if (Object.prototype.hasOwnProperty.call(changes, "address")) {
+      const newAddressRaw = changes.address.newValue;
+      const newAddress =
+        typeof newAddressRaw === "string" ? newAddressRaw.trim() : "";
+      const previousAddress = this.address;
+      this.address = newAddress;
+      this.hasAddress = ADDRESS_REGEX.test(newAddress);
+
+      if (this.hasAddress && newAddress !== previousAddress) {
+        this.loadPositions({ address: newAddress, silent: true });
+      }
+
+      if (!this.hasAddress) {
+        this.positions = [];
+        this.positionsValue = null;
+        this.positionsUpdatedAt = null;
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(changes, "lastValue")) {
+      this.lastValue = parseNumber(changes.lastValue.newValue);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(changes, "positionsValue")) {
+      this.positionsValue = parseNumber(changes.positionsValue.newValue);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(changes, "cashBalance")) {
+      this.cashBalance = parseNumber(changes.cashBalance.newValue);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(changes, "lastUpdated")) {
+      const rawValue = changes.lastUpdated.newValue;
+      this.lastUpdated =
+        typeof rawValue === "number" ? rawValue : parseNumber(rawValue);
+      shouldUpdateStatus = true;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(changes, "lastError")) {
+      const errorValue = changes.lastError.newValue;
+      this.lastError = errorValue ? String(errorValue) : "";
+      shouldUpdateStatus = true;
+    }
+
+    if (shouldUpdateStatus) {
+      this.updateStatusFromState();
+    }
+  }
+
+  updateStatusFromState() {
+    if (this.lastError) {
+      this.statusMessage = "";
+      return;
+    }
+
+    if (
+      typeof this.lastUpdated === "number" &&
+      !Number.isNaN(this.lastUpdated)
+    ) {
+      this.statusMessage = `Last updated: ${new Date(this.lastUpdated).toLocaleString()}`;
+    } else {
+      this.statusMessage = "";
     }
   }
 
