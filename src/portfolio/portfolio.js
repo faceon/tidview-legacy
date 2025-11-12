@@ -22,6 +22,7 @@ class TidviewPortfolio extends LitElement {
     lastError: { type: String },
     statusMessage: { type: String },
     isBusy: { type: Boolean },
+    /** @type {any[]} */
     positions: { type: Array },
     positionsLoading: { type: Boolean },
     positionsUpdatedAt: { type: Number },
@@ -153,7 +154,7 @@ class TidviewPortfolio extends LitElement {
         <!-- positions -->
         <div class="positions">
           <positions-section
-            .positions=${this.positions}
+            .positions=${/** @type {any} */ (this.positions)}
             .loading=${this.positionsLoading}
             .openMarket=${this.boundOpenMarket}
           ></positions-section>
