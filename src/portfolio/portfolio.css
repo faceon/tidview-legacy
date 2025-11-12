@@ -289,8 +289,7 @@ body {
   border-top: 1px solid #eee;
 }
 
-.portfolio-header,
-.history-header {
+.portfolio-header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -298,8 +297,7 @@ body {
   font-weight: 600;
 }
 
-.portfolio-header span,
-.history-header span {
+.portfolio-header span {
   font-size: 12px;
   font-weight: 400;
   color: var(--color-muted);
@@ -396,140 +394,6 @@ body {
 
 .position-stat-pnl {
   font-size: 11px;
-}
-
-.history-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
-.history-controls {
-  display: flex;
-  justify-content: flex-end;
-  font-size: 12px;
-  color: var(--color-subtle);
-}
-
-.history-controls label {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-sm);
-  cursor: pointer;
-  user-select: none;
-}
-
-.history-controls input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
-  accent-color: var(--color-text);
-}
-
-.history-list,
-.history-trade-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.history-trade-list {
-  margin-top: var(--space-md);
-  padding-left: 52px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.history-group {
-  padding: var(--space-md) 0;
-  border-top: 1px solid #f2f2f2;
-}
-
-.history-group:first-child {
-  border-top: none;
-  padding-top: 0;
-}
-
-.history-group-header {
-  display: flex;
-  gap: var(--space-md);
-  align-items: flex-start;
-  cursor: pointer;
-}
-
-.history-group-header:focus-visible,
-.history-trade-row:focus-visible {
-  outline: 2px solid var(--color-text);
-  outline-offset: 2px;
-}
-
-.history-group-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  font-size: 12px;
-}
-
-.history-group-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.history-group-meta {
-  font-size: 11px;
-  color: var(--color-muted);
-  display: flex;
-  gap: var(--space-sm);
-  flex-wrap: wrap;
-}
-
-.history-tag {
-  font-size: 11px;
-  color: #555;
-  background: #f0f0f0;
-  padding: var(--space-xxs) var(--space-sm);
-  border-radius: var(--radius-pill);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.history-trade-row {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.history-trade-top,
-.history-trade-meta {
-  display: flex;
-  gap: var(--space-sm);
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.history-trade-meta {
-  font-size: 11px;
-  color: var(--color-muted);
-}
-
-.history-side.buy {
-  color: var(--color-positive);
-}
-
-.history-side.sell {
-  color: var(--color-negative);
-}
-
-.history-pagination {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: var(--space-md);
-  font-size: 12px;
 }
 
 .pagination-button {

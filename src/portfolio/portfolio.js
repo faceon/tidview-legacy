@@ -1,7 +1,7 @@
 import { LitElement, html, css, unsafeCSS } from "lit";
-import { parseNumber, formatCurrency } from "./components/format.js";
+import { parseNumber, formatCurrency } from "../common/format.js";
 import portfolioCss from "./portfolio.css";
-import "./components/positions-section.js";
+import "./positions-section.js";
 import "@material/web/iconButton/filled-icon-button.js";
 import "@material/web/icon/icon.js";
 import "@material/web/button/outlined-button.js";

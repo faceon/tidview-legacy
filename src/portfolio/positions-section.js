@@ -8,8 +8,8 @@ import {
   formatDate,
   trendClass,
   parseNumber,
-} from "./format.js";
-import sharedCss from "../portfolio.css";
+} from "../common/format.js";
+import sharedCss from "./portfolio.css";
 
 class PositionsSection extends LitElement {
   static properties = {

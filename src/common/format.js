@@ -42,6 +42,17 @@ export const formatNumber = (value, options = {}) => {
   return formatter.format(num);
 };
 
+export const formatBadge = (value) => {
+  const num = parseNumber(value);
+  if (num == null) return "—";
+  const rounded = Math.round(num);
+  if (rounded < 1000) return String(rounded);
+  if (rounded < 10000)
+    return (rounded / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+  if (rounded < 1000000) return Math.round(rounded / 1000) + "k";
+  return Math.round(rounded / 1000000) + "M";
+};
+
 export const formatDate = (value) => {
   if (!value) return "No end date";
   const date = new Date(value);

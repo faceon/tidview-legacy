@@ -1,3 +1,5 @@
+import { formatBadge } from "../common/format.js";
+
 const API_BASE = "https://data-api.polymarket.com";
 const POLYGON_RPC_URL = "https://polygon-rpc.com/";
 const USDC_CONTRACT = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
@@ -63,40 +65,29 @@ async function refreshNow() {
   }
 
   try {
-    const [positionsResult, cashResult] = await Promise.allSettled([
+    const results = await Promise.allSettled([
       fetchPositionsValue(address),
       fetchCashBalance(address),
     ]);
 
-    const positionsValue =
-      positionsResult.status === "fulfilled" ? positionsResult.value : null;
-    const cashBalance =
-      cashResult.status === "fulfilled" ? cashResult.value : null;
+    const [positionsValue, cashBalance] = results.map((result) =>
+      result.status === "fulfilled" ? result.value : null,
+    );
 
     if (positionsValue == null && cashBalance == null) {
       const reasons =
-        [positionsResult, cashResult]
+        results
           .filter((result) => result.status === "rejected")
           .map((result) => String(result.reason?.message || result.reason))
           .join("; ") || "Unknown error";
       throw new Error(reasons);
     }
 
-    const totalValue =
-      (typeof positionsValue === "number" ? positionsValue : 0) +
-      (typeof cashBalance === "number" ? cashBalance : 0);
+    const totalValue = (positionsValue || 0) + (cashBalance || 0);
 
-    const partialErrors = [];
-    if (positionsValue == null && positionsResult.status === "rejected") {
-      partialErrors.push(
-        positionsResult.reason?.message || String(positionsResult.reason),
-      );
-    }
-    if (cashBalance == null && cashResult.status === "rejected") {
-      partialErrors.push(
-        cashResult.reason?.message || String(cashResult.reason),
-      );
-    }
+    const partialErrors = results
+      .filter((result) => result.status === "rejected")
+      .map((result) => result.reason?.message || String(result.reason));
 
     const errorMessage = partialErrors.length ? partialErrors.join("; ") : null;
 
@@ -107,10 +98,12 @@ async function refreshNow() {
       lastUpdated: Date.now(),
       lastError: errorMessage,
     });
+
     updateBadge(
       formatBadge(totalValue),
       `Portfolio Total: $${Number(totalValue).toLocaleString()}`,
     );
+
     return {
       ok: true,
       value: totalValue,
@@ -199,17 +192,6 @@ async function fetchCashBalance(address) {
 function updateBadge(text, title) {
   chrome.action.setBadgeText({ text });
   chrome.action.setTitle({ title });
-}
-
-// 배지 텍스트 포맷팅 함수
-function formatBadge(v) {
-  if (v == null || isNaN(v)) return "—";
-  const rounded = Math.round(v);
-  if (rounded < 1000) return String(rounded);
-  if (rounded < 10000)
-    return (rounded / 1000).toFixed(1).replace(/\.0$/, "") + "k";
-  if (rounded < 1000000) return Math.round(rounded / 1000) + "k";
-  return Math.round(rounded / 1000000) + "M";
 }
 
 // 숫자 파서 (안전한 변환)
