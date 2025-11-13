@@ -8,18 +8,31 @@ import {
 const POLL_MINUTES = 5;
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
 const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
-const SESSION_KEYS = ["positions", "positionsUpdatedAt", "positionsError"];
+const STORAGE_SYNC_KEYS = [
+  "address",
+  "totalValue",
+  "positionsValue",
+  "cashBalance",
+  "lastUpdated",
+  "lastError",
+];
+const STORAGE_SESSION_KEYS = [
+  "positions",
+  "positionsUpdatedAt",
+  "positionsError",
+];
+const PORTFOLIO_PATH = "portfolio.html";
+const BADGE_COLOR = "#4873ffff";
 
-// Extension 설치 시 초기 설정: 배지 색, 알람 스케줄, 첫 리프레시
 chrome.runtime.onInstalled.addListener(() => {
   // 개발 모드에서는 사이드패널, 배포 모드에서는 팝업 사용
   if (IS_DEVELOPMENT) {
-    chrome.sidePanel.setOptions({ path: "portfolio.html" });
+    chrome.sidePanel.setOptions({ path: PORTFOLIO_PATH });
     chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
   } else {
-    chrome.action.setPopup({ popup: "portfolio.html" });
+    chrome.action.setPopup({ popup: PORTFOLIO_PATH });
   }
-  chrome.action.setBadgeBackgroundColor({ color: "#4873ffff" });
+  chrome.action.setBadgeBackgroundColor({ color: BADGE_COLOR });
   scheduleAlarm();
   refreshNow();
 });
@@ -37,15 +50,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg?.type === "getStatus") {
     Promise.all([
-      chrome.storage.sync.get([
-        "address",
-        "totalValue",
-        "lastUpdated",
-        "lastError",
-        "positionsValue",
-        "cashBalance",
-      ]),
-      chrome.storage.session.get(SESSION_KEYS),
+      chrome.storage.sync.get(STORAGE_SYNC_KEYS),
+      chrome.storage.session.get(STORAGE_SESSION_KEYS),
     ])
       .then(([syncData, sessionData]) => ({ ...syncData, ...sessionData }))
       .then(sendResponse);
