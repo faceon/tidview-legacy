@@ -72,10 +72,15 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 ## File Structure
 
 - `src/background/background.js`: Core logic & API
-- `src/portfolio/portfolio.html`: portfolio container referencing custom element
+- `src/common/format.js`: Utility functions for formatting
+- `src/common/lit-dev-warn-suppressor.js`: Suppresses Lit development warnings
+- `src/portfolio/portfolio.html`: Portfolio container referencing custom element
 - `src/portfolio/portfolio.js`: LitElement portfolio web component
+- `src/portfolio/portfolio.css`: Styles for portfolio UI
+- `src/portfolio/positions-section.js`: Component for positions section
 - `src/static/manifest.json`: Extension config
 - `src/static/icons/`: Icons (16px, 48px, 128px)
+- `src/static/fonts/`: Fonts
 - `dist/`: Built files (webpack)
 
 ## Security Notes
