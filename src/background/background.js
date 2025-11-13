@@ -8,53 +8,37 @@ import {
 const POLL_MINUTES = 5;
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
 const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
-const STORAGE_SYNC_KEYS = [
-  "address",
-  "totalValue",
-  "positionsValue",
-  "cashBalance",
-  "lastUpdated",
-  "lastError",
-];
-const STORAGE_SESSION_KEYS = [
-  "positions",
-  "positionsUpdatedAt",
-  "positionsError",
-];
 const PORTFOLIO_PATH = "portfolio.html";
 const BADGE_COLOR = "#4873ffff";
 
 chrome.runtime.onInstalled.addListener(() => {
-  // 개발 모드에서는 사이드패널, 배포 모드에서는 팝업 사용
+  // Side panel for development, popup for production
   if (IS_DEVELOPMENT) {
     chrome.sidePanel.setOptions({ path: PORTFOLIO_PATH });
     chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
   } else {
     chrome.action.setPopup({ popup: PORTFOLIO_PATH });
   }
+
+  // Set badge background color
   chrome.action.setBadgeBackgroundColor({ color: BADGE_COLOR });
-  scheduleAlarm();
+
+  // Schedule polling alarm
+  chrome.alarms.clearAll(() => {
+    chrome.alarms.create("poll", { periodInMinutes: POLL_MINUTES });
+  });
+
+  // Initial data refresh
   refreshNow();
 });
 
-// 알람 이벤트: 폴링 시 리프레시
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm?.name === "poll") refreshNow();
 });
 
-// 메시지 리스너: 팝업에서 리프레시 요청 처리
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === "refresh") {
     refreshNow().then(sendResponse);
-    return true; // 비동기 응답
-  }
-  if (msg?.type === "getStatus") {
-    Promise.all([
-      chrome.storage.sync.get(STORAGE_SYNC_KEYS),
-      chrome.storage.session.get(STORAGE_SESSION_KEYS),
-    ])
-      .then(([syncData, sessionData]) => ({ ...syncData, ...sessionData }))
-      .then(sendResponse);
     return true;
   }
 });
@@ -65,14 +49,6 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   refreshNow();
 });
 
-// 알람 스케줄링 함수
-function scheduleAlarm() {
-  chrome.alarms.clearAll(() => {
-    chrome.alarms.create("poll", { periodInMinutes: POLL_MINUTES });
-  });
-}
-
-// 데이터 리프레시 함수 (메인 로직)
 async function refreshNow() {
   const { address } = await chrome.storage.sync.get(["address"]);
   if (!address || !ADDRESS_REGEX.test(address)) {

@@ -8,6 +8,19 @@ import "@material/web/button/outlined-button.js";
 import "@material/web/button/filled-tonal-button.js";
 
 const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
+const STORAGE_SYNC_KEYS = [
+  "address",
+  "totalValue",
+  "positionsValue",
+  "cashBalance",
+  "lastUpdated",
+  "lastError",
+];
+const STORAGE_SESSION_KEYS = [
+  "positions",
+  "positionsUpdatedAt",
+  "positionsError",
+];
 
 class TidviewPortfolio extends LitElement {
   static styles = css`
@@ -183,7 +196,7 @@ class TidviewPortfolio extends LitElement {
     if (chrome?.storage?.onChanged) {
       chrome.storage.onChanged.addListener(this.boundStorageChange);
     }
-    this.loadStatus();
+    this.initFromStorage();
   }
 
   disconnectedCallback() {
@@ -193,10 +206,17 @@ class TidviewPortfolio extends LitElement {
     super.disconnectedCallback();
   }
 
-  async loadStatus() {
+  async initFromStorage() {
     try {
-      const status =
-        (await chrome.runtime.sendMessage({ type: "getStatus" })) || {};
+      if (!chrome?.storage?.sync || !chrome?.storage?.session) {
+        return;
+      }
+
+      const [syncData, sessionData] = await Promise.all([
+        chrome.storage.sync.get(STORAGE_SYNC_KEYS),
+        chrome.storage.session.get(STORAGE_SESSION_KEYS),
+      ]);
+
       const {
         address,
         totalValue,
@@ -204,11 +224,17 @@ class TidviewPortfolio extends LitElement {
         lastError,
         positionsValue,
         cashBalance,
-        positions,
-        positionsUpdatedAt,
-        positionsError,
-      } = status;
+      } = syncData;
 
+      this.address = typeof address === "string" ? address.trim() : "";
+      this.hasAddress = ADDRESS_REGEX.test(this.address);
+      this.totalValue =
+        typeof totalValue === "number" ? totalValue : parseNumber(totalValue);
+      this.lastUpdated =
+        typeof lastUpdated === "number"
+          ? lastUpdated
+          : parseNumber(lastUpdated);
+      this.lastError = lastError ?? "";
       this.positionsValue =
         typeof positionsValue === "number"
           ? positionsValue
@@ -218,32 +244,23 @@ class TidviewPortfolio extends LitElement {
           ? cashBalance
           : parseNumber(cashBalance);
 
-      this.address = typeof address === "string" ? address.trim() : "";
-      this.hasAddress = ADDRESS_REGEX.test(this.address);
-      this.totalValue =
-        typeof totalValue === "number" ? totalValue : parseNumber(totalValue);
-      this.lastUpdated = typeof lastUpdated === "number" ? lastUpdated : null;
-      this.lastError = lastError ?? "";
-
-      if (this.lastUpdated) {
-        this.statusMessage = `Last updated: ${new Date(this.lastUpdated).toLocaleString()}`;
-      }
+      const hasPositionsData = Array.isArray(sessionData?.positions);
+      this.positionsLoading = this.hasAddress && !hasPositionsData;
 
       this.applyPositionsState(
         {
-          positions,
-          positionsUpdatedAt,
-          positionsError,
+          positions: sessionData?.positions,
+          positionsUpdatedAt: sessionData?.positionsUpdatedAt,
+          positionsError: sessionData?.positionsError,
         },
         { silent: true },
       );
 
-      if (this.hasAddress && !Array.isArray(positions)) {
-        this.positionsLoading = true;
-      }
+      this.updateStatusFromState();
     } catch (error) {
-      console.error("Failed to load portfolio status", error);
+      console.error("Failed to initialize from storage", error);
       this.lastError = "Unable to load current status.";
+      this.statusMessage = "";
     }
   }
 
@@ -457,7 +474,9 @@ class TidviewPortfolio extends LitElement {
 
     if (Object.prototype.hasOwnProperty.call(state, "positions")) {
       const rawPositions = state.positions;
-      if (Array.isArray(rawPositions)) {
+      if (typeof rawPositions === "undefined") {
+        // Positions not yet available
+      } else if (Array.isArray(rawPositions)) {
         const normalized = rawPositions.map((entry) =>
           this.normalizePosition(entry),
         );
@@ -470,29 +489,34 @@ class TidviewPortfolio extends LitElement {
           return value != null ? sum + value : sum;
         }, 0);
         this.positionsValue = computedValue;
+        touched = true;
       } else {
         this.positions = [];
         this.positionsValue = null;
+        touched = true;
       }
-      touched = true;
     }
 
     if (Object.prototype.hasOwnProperty.call(state, "positionsUpdatedAt")) {
       const rawUpdatedAt = state.positionsUpdatedAt;
-      this.positionsUpdatedAt =
-        typeof rawUpdatedAt === "number" && !Number.isNaN(rawUpdatedAt)
-          ? rawUpdatedAt
-          : null;
-      touched = true;
+      if (typeof rawUpdatedAt !== "undefined") {
+        this.positionsUpdatedAt =
+          typeof rawUpdatedAt === "number" && !Number.isNaN(rawUpdatedAt)
+            ? rawUpdatedAt
+            : null;
+        touched = true;
+      }
     }
 
     if (Object.prototype.hasOwnProperty.call(state, "positionsError")) {
       const errorValue = state.positionsError;
-      this.positionsError = errorValue ? String(errorValue) : "";
-      if (!silent && this.positionsError) {
-        this.statusMessage = "";
+      if (typeof errorValue !== "undefined") {
+        this.positionsError = errorValue ? String(errorValue) : "";
+        if (!silent && this.positionsError) {
+          this.statusMessage = "";
+        }
+        touched = true;
       }
-      touched = true;
     }
 
     if (touched) {
