@@ -1,12 +1,14 @@
 import { formatBadge } from "../common/format.js";
+import {
+  fetchCashBalance,
+  fetchPositions,
+  fetchPositionsValue,
+} from "./polymarket-api.js";
 
-const API_BASE = "https://data-api.polymarket.com";
-const POLYGON_RPC_URL = "https://polygon-rpc.com/";
-const USDC_CONTRACT = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
-const ERC20_BALANCE_OF_SELECTOR = "0x70a08231";
-const USDC_DECIMALS = 6;
 const POLL_MINUTES = 5;
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
+const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
+const SESSION_KEYS = ["positions", "positionsUpdatedAt", "positionsError"];
 
 // Extension 설치 시 초기 설정: 배지 색, 알람 스케줄, 첫 리프레시
 chrome.runtime.onInstalled.addListener(() => {
@@ -34,19 +36,27 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true; // 비동기 응답
   }
   if (msg?.type === "getStatus") {
-    chrome.storage.sync.get(
-      [
+    Promise.all([
+      chrome.storage.sync.get([
         "address",
         "totalValue",
         "lastUpdated",
         "lastError",
         "positionsValue",
         "cashBalance",
-      ],
-      sendResponse,
-    );
+      ]),
+      chrome.storage.session.get(SESSION_KEYS),
+    ])
+      .then(([syncData, sessionData]) => ({ ...syncData, ...sessionData }))
+      .then(sendResponse);
     return true;
   }
+});
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "sync") return;
+  if (!Object.prototype.hasOwnProperty.call(changes, "address")) return;
+  refreshNow();
 });
 
 // 알람 스케줄링 함수
@@ -59,20 +69,43 @@ function scheduleAlarm() {
 // 데이터 리프레시 함수 (메인 로직)
 async function refreshNow() {
   const { address } = await chrome.storage.sync.get(["address"]);
-  if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
-    updateBadge("—", "No valid 0x address set.");
-    return { ok: false, error: "No valid 0x address set." };
+  if (!address || !ADDRESS_REGEX.test(address)) {
+    const message = "No valid 0x address set.";
+    await Promise.all([
+      chrome.storage.sync.set({
+        totalValue: null,
+        positionsValue: null,
+        cashBalance: null,
+        lastUpdated: Date.now(),
+        lastError: message,
+      }),
+      chrome.storage.session.set({
+        positions: [],
+        positionsUpdatedAt: null,
+        positionsError: message,
+      }),
+    ]);
+    updateBadge("—", message);
+    return { ok: false, error: message };
   }
 
   try {
     const results = await Promise.allSettled([
       fetchPositionsValue(address),
       fetchCashBalance(address),
+      fetchPositions(address),
     ]);
 
-    const [positionsValue, cashBalance] = results.map((result) =>
-      result.status === "fulfilled" ? result.value : null,
-    );
+    const [positionsValueResult, cashBalanceResult, positionsResult] = results;
+
+    const positionsValue =
+      positionsValueResult.status === "fulfilled"
+        ? positionsValueResult.value
+        : null;
+    const cashBalance =
+      cashBalanceResult.status === "fulfilled" ? cashBalanceResult.value : null;
+    const positionsData =
+      positionsResult.status === "fulfilled" ? positionsResult.value : null;
 
     if (positionsValue == null && cashBalance == null) {
       const reasons =
@@ -91,13 +124,28 @@ async function refreshNow() {
 
     const errorMessage = partialErrors.length ? partialErrors.join("; ") : null;
 
-    await chrome.storage.sync.set({
-      totalValue,
-      positionsValue,
-      cashBalance,
-      lastUpdated: Date.now(),
-      lastError: errorMessage,
-    });
+    const sessionUpdate = {};
+    if (Array.isArray(positionsData)) {
+      sessionUpdate.positions = positionsData;
+      sessionUpdate.positionsUpdatedAt = Date.now();
+      sessionUpdate.positionsError = null;
+    } else if (positionsResult.status === "rejected") {
+      sessionUpdate.positionsError =
+        positionsResult.reason?.message || String(positionsResult.reason);
+    }
+
+    await Promise.all([
+      chrome.storage.sync.set({
+        totalValue,
+        positionsValue,
+        cashBalance,
+        lastUpdated: Date.now(),
+        lastError: errorMessage,
+      }),
+      Object.keys(sessionUpdate).length
+        ? chrome.storage.session.set(sessionUpdate)
+        : Promise.resolve(),
+    ]);
 
     updateBadge(
       formatBadge(totalValue),
@@ -112,87 +160,21 @@ async function refreshNow() {
       error: errorMessage,
     };
   } catch (e) {
-    await chrome.storage.sync.set({
-      lastError: String(e),
-      lastUpdated: Date.now(),
-    });
+    const message = String(e);
+    await Promise.all([
+      chrome.storage.sync.set({
+        lastError: message,
+        lastUpdated: Date.now(),
+      }),
+      chrome.storage.session.set({ positionsError: message }),
+    ]);
     updateBadge("!", `Error fetching value: ${e}`);
-    return { ok: false, error: String(e) };
+    return { ok: false, error: message };
   }
-}
-
-async function fetchPositionsValue(address) {
-  const url = `${API_BASE}/value?user=${encodeURIComponent(address)}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Value HTTP ${res.status}`);
-  const json = await res.json();
-  const value = toNumber(json?.at(0).value);
-  if (value == null) {
-    throw new Error("Unexpected value response format");
-  }
-  return value;
-}
-
-// Polygon RPC 호출 함수: USDC 잔액 조회
-async function fetchCashBalance(address) {
-  const normalizedAddress = address.trim().toLowerCase().replace(/^0x/, "");
-  const data = ERC20_BALANCE_OF_SELECTOR + normalizedAddress.padStart(64, "0");
-
-  const res = await fetch(POLYGON_RPC_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "eth_call",
-      params: [
-        {
-          to: USDC_CONTRACT,
-          data,
-        },
-        "latest",
-      ],
-    }),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Polygon RPC HTTP ${res.status}`);
-  }
-
-  const json = await res.json();
-  if (json?.error) {
-    throw new Error(json.error?.message || "Polygon RPC error");
-  }
-
-  const hexValue = json?.result;
-  if (typeof hexValue !== "string") {
-    throw new Error("Invalid Polygon RPC response");
-  }
-
-  let balance;
-  try {
-    const raw = BigInt(hexValue);
-    balance = Number(raw) / 10 ** USDC_DECIMALS;
-  } catch (error) {
-    throw new Error("Failed to parse USDC balance");
-  }
-
-  if (!Number.isFinite(balance)) {
-    throw new Error("USDC balance is not a finite number");
-  }
-
-  return balance;
 }
 
 // 배지 업데이트 함수 (분리)
 function updateBadge(text, title) {
   chrome.action.setBadgeText({ text });
   chrome.action.setTitle({ title });
-}
-
-// 숫자 파서 (안전한 변환)
-function toNumber(value) {
-  if (value == null) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
 }

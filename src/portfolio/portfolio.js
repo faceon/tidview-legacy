@@ -27,6 +27,7 @@ class TidviewPortfolio extends LitElement {
     positionsLoading: { type: Boolean },
     positionsUpdatedAt: { type: Number },
     positionsValue: { type: Number },
+    positionsError: { type: String },
     copied: { type: Boolean },
     cashBalance: { type: Number },
   };
@@ -44,6 +45,7 @@ class TidviewPortfolio extends LitElement {
     this.positionsLoading = false;
     this.positionsUpdatedAt = null;
     this.positionsValue = null;
+    this.positionsError = "";
     this.boundOpenMarket = this.openMarket.bind(this);
     this.copied = false;
     this.cashBalance = null;
@@ -159,6 +161,9 @@ class TidviewPortfolio extends LitElement {
             .openMarket=${this.boundOpenMarket}
           ></positions-section>
 
+          ${this.positionsError
+            ? html`<div class="meta error">${this.positionsError}</div>`
+            : ""}
           ${this.statusMessage
             ? html`<div class="meta">${this.statusMessage}</div>`
             : ""}
@@ -190,6 +195,8 @@ class TidviewPortfolio extends LitElement {
 
   async loadStatus() {
     try {
+      const status =
+        (await chrome.runtime.sendMessage({ type: "getStatus" })) || {};
       const {
         address,
         totalValue,
@@ -197,7 +204,10 @@ class TidviewPortfolio extends LitElement {
         lastError,
         positionsValue,
         cashBalance,
-      } = (await chrome.runtime.sendMessage({ type: "getStatus" })) || {};
+        positions,
+        positionsUpdatedAt,
+        positionsError,
+      } = status;
 
       this.positionsValue =
         typeof positionsValue === "number"
@@ -219,8 +229,17 @@ class TidviewPortfolio extends LitElement {
         this.statusMessage = `Last updated: ${new Date(this.lastUpdated).toLocaleString()}`;
       }
 
-      if (this.hasAddress) {
-        await this.loadPositions({ address: this.address, silent: true });
+      this.applyPositionsState(
+        {
+          positions,
+          positionsUpdatedAt,
+          positionsError,
+        },
+        { silent: true },
+      );
+
+      if (this.hasAddress && !Array.isArray(positions)) {
+        this.positionsLoading = true;
       }
     } catch (error) {
       console.error("Failed to load portfolio status", error);
@@ -229,58 +248,84 @@ class TidviewPortfolio extends LitElement {
   }
 
   handleStorageChange(changes, areaName) {
-    if (areaName !== "sync") {
+    if (areaName === "sync") {
+      let shouldUpdateStatus = false;
+
+      if (Object.prototype.hasOwnProperty.call(changes, "address")) {
+        const newAddressRaw = changes.address.newValue;
+        const newAddress =
+          typeof newAddressRaw === "string" ? newAddressRaw.trim() : "";
+        const previousAddress = this.address;
+        this.address = newAddress;
+        this.hasAddress = ADDRESS_REGEX.test(newAddress);
+
+        if (this.hasAddress && newAddress !== previousAddress) {
+          this.positions = [];
+          this.positionsValue = null;
+          this.positionsUpdatedAt = null;
+          this.positionsError = "";
+          this.positionsLoading = true;
+        }
+
+        if (!this.hasAddress) {
+          this.positions = [];
+          this.positionsValue = null;
+          this.positionsUpdatedAt = null;
+          this.positionsError = "";
+          this.positionsLoading = false;
+        }
+      }
+
+      if (Object.prototype.hasOwnProperty.call(changes, "totalValue")) {
+        this.totalValue = parseNumber(changes.totalValue.newValue);
+      }
+
+      if (Object.prototype.hasOwnProperty.call(changes, "positionsValue")) {
+        this.positionsValue = parseNumber(changes.positionsValue.newValue);
+      }
+
+      if (Object.prototype.hasOwnProperty.call(changes, "cashBalance")) {
+        this.cashBalance = parseNumber(changes.cashBalance.newValue);
+      }
+
+      if (Object.prototype.hasOwnProperty.call(changes, "lastUpdated")) {
+        const rawValue = changes.lastUpdated.newValue;
+        this.lastUpdated =
+          typeof rawValue === "number" ? rawValue : parseNumber(rawValue);
+        shouldUpdateStatus = true;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(changes, "lastError")) {
+        const errorValue = changes.lastError.newValue;
+        this.lastError = errorValue ? String(errorValue) : "";
+        shouldUpdateStatus = true;
+      }
+
+      if (shouldUpdateStatus) {
+        this.updateStatusFromState();
+      }
+
       return;
     }
 
-    let shouldUpdateStatus = false;
+    if (areaName === "session") {
+      const sessionUpdate = {};
 
-    if (Object.prototype.hasOwnProperty.call(changes, "address")) {
-      const newAddressRaw = changes.address.newValue;
-      const newAddress =
-        typeof newAddressRaw === "string" ? newAddressRaw.trim() : "";
-      const previousAddress = this.address;
-      this.address = newAddress;
-      this.hasAddress = ADDRESS_REGEX.test(newAddress);
-
-      if (this.hasAddress && newAddress !== previousAddress) {
-        this.loadPositions({ address: newAddress, silent: true });
+      if (Object.prototype.hasOwnProperty.call(changes, "positions")) {
+        sessionUpdate.positions = changes.positions.newValue;
       }
 
-      if (!this.hasAddress) {
-        this.positions = [];
-        this.positionsValue = null;
-        this.positionsUpdatedAt = null;
+      if (Object.prototype.hasOwnProperty.call(changes, "positionsUpdatedAt")) {
+        sessionUpdate.positionsUpdatedAt = changes.positionsUpdatedAt.newValue;
       }
-    }
 
-    if (Object.prototype.hasOwnProperty.call(changes, "totalValue")) {
-      this.totalValue = parseNumber(changes.totalValue.newValue);
-    }
+      if (Object.prototype.hasOwnProperty.call(changes, "positionsError")) {
+        sessionUpdate.positionsError = changes.positionsError.newValue;
+      }
 
-    if (Object.prototype.hasOwnProperty.call(changes, "positionsValue")) {
-      this.positionsValue = parseNumber(changes.positionsValue.newValue);
-    }
-
-    if (Object.prototype.hasOwnProperty.call(changes, "cashBalance")) {
-      this.cashBalance = parseNumber(changes.cashBalance.newValue);
-    }
-
-    if (Object.prototype.hasOwnProperty.call(changes, "lastUpdated")) {
-      const rawValue = changes.lastUpdated.newValue;
-      this.lastUpdated =
-        typeof rawValue === "number" ? rawValue : parseNumber(rawValue);
-      shouldUpdateStatus = true;
-    }
-
-    if (Object.prototype.hasOwnProperty.call(changes, "lastError")) {
-      const errorValue = changes.lastError.newValue;
-      this.lastError = errorValue ? String(errorValue) : "";
-      shouldUpdateStatus = true;
-    }
-
-    if (shouldUpdateStatus) {
-      this.updateStatusFromState();
+      if (Object.keys(sessionUpdate).length) {
+        this.applyPositionsState(sessionUpdate);
+      }
     }
   }
 
@@ -315,20 +360,20 @@ class TidviewPortfolio extends LitElement {
     this.isBusy = true;
     this.lastError = "";
     this.statusMessage = "Saved. Refreshing...";
+    this.positionsLoading = true;
+    this.positionsError = "";
     try {
       await chrome.storage.sync.set({ address: trimmed });
       this.address = trimmed;
-      const [badgeOk] = await Promise.all([
-        this.refreshBalance({ recordTimestamp: true }),
-        this.loadPositions({ address: trimmed }),
-      ]);
-      if (badgeOk) {
+      const refreshOk = await this.requestRefresh({ recordTimestamp: true });
+      if (refreshOk) {
         this.statusMessage = `Refreshed at ${new Date().toLocaleString()}`;
       }
     } catch (error) {
       console.error("Failed to save address", error);
       this.lastError = error?.message || "Failed to save address.";
       this.statusMessage = "";
+      this.positionsLoading = false;
     } finally {
       this.isBusy = false;
     }
@@ -345,112 +390,112 @@ class TidviewPortfolio extends LitElement {
     this.isBusy = true;
     this.lastError = "";
     this.statusMessage = "Refreshing...";
+    this.positionsLoading = true;
+    this.positionsError = "";
     try {
       this.address = trimmed;
-      const [badgeOk] = await Promise.all([
-        this.refreshBalance({ recordTimestamp: true }),
-        this.loadPositions({ address: trimmed }),
-      ]);
-      if (badgeOk) {
+      const refreshOk = await this.requestRefresh({ recordTimestamp: true });
+      if (refreshOk) {
         this.statusMessage = `Refreshed at ${new Date().toLocaleString()}`;
       }
     } catch (error) {
       console.error("Failed to refresh balance", error);
       this.lastError = error?.message || "Failed to refresh balance.";
       this.statusMessage = "";
+      this.positionsLoading = false;
     } finally {
       this.isBusy = false;
     }
   }
 
-  async refreshBalance({ recordTimestamp = false } = {}) {
-    const res = await chrome.runtime.sendMessage({ type: "refresh" });
-    if (res?.ok) {
-      this.totalValue = parseNumber(res.value);
-      this.positionsValue = parseNumber(res.positionsValue);
-      this.cashBalance = parseNumber(res.cashBalance);
-      if (recordTimestamp) {
-        this.lastUpdated = Date.now();
-        this.statusMessage = `Updated: ${new Date(this.lastUpdated).toLocaleString()}`;
+  async requestRefresh({ recordTimestamp = false } = {}) {
+    try {
+      const res = await chrome.runtime.sendMessage({ type: "refresh" });
+      if (res?.ok) {
+        if (Object.prototype.hasOwnProperty.call(res, "totalValue")) {
+          this.totalValue = parseNumber(res.totalValue);
+        }
+        if (Object.prototype.hasOwnProperty.call(res, "positionsValue")) {
+          this.positionsValue = parseNumber(res.positionsValue);
+        }
+        if (Object.prototype.hasOwnProperty.call(res, "cashBalance")) {
+          this.cashBalance = parseNumber(res.cashBalance);
+        }
+        if (recordTimestamp) {
+          this.lastUpdated = Date.now();
+          this.statusMessage = `Updated: ${new Date(this.lastUpdated).toLocaleString()}`;
+        }
+        this.lastError = res?.error ? String(res.error) : "";
+        return true;
       }
-      this.lastError = res?.error ? String(res.error) : "";
-      return true;
-    } else {
-      this.lastError = res?.error || "Unknown error";
+
+      const errorMessage = res?.error || "Unknown error";
+      this.lastError = errorMessage;
       if (!recordTimestamp && this.lastUpdated) {
         this.statusMessage = `Last updated: ${new Date(this.lastUpdated).toLocaleString()}`;
       } else {
         this.statusMessage = "";
       }
+      this.positionsLoading = false;
+      return false;
+    } catch (error) {
+      console.error("Failed to refresh portfolio", error);
+      const message = error?.message || "Failed to refresh balance.";
+      this.lastError = message;
+      if (!recordTimestamp && this.lastUpdated) {
+        this.statusMessage = `Last updated: ${new Date(this.lastUpdated).toLocaleString()}`;
+      } else {
+        this.statusMessage = "";
+      }
+      this.positionsLoading = false;
       return false;
     }
   }
 
-  async loadPositions({ address = this.address, silent = false } = {}) {
-    const trimmed = address?.trim();
+  applyPositionsState(state, { silent = false } = {}) {
+    let touched = false;
 
-    if (!trimmed) {
-      if (!silent) {
-        this.positions = [];
-        this.positionsUpdatedAt = null;
-        this.statusMessage = "";
-      }
-      this.positionsValue = null;
-      return 0;
-    }
-
-    if (!ADDRESS_REGEX.test(trimmed)) {
-      if (!silent) {
-        this.positions = [];
-        this.positionsUpdatedAt = null;
-        this.statusMessage = "";
-      }
-      this.positionsValue = null;
-      return 0;
-    }
-
-    this.positionsLoading = true;
-
-    try {
-      const url = `https://data-api.polymarket.com/positions?user=${encodeURIComponent(
-        trimmed,
-      )}`;
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error(
-          `Positions request failed with HTTP ${response.status}`,
+    if (Object.prototype.hasOwnProperty.call(state, "positions")) {
+      const rawPositions = state.positions;
+      if (Array.isArray(rawPositions)) {
+        const normalized = rawPositions.map((entry) =>
+          this.normalizePosition(entry),
         );
+        normalized.sort(
+          (a, b) => (b.currentValue ?? 0) - (a.currentValue ?? 0),
+        );
+        this.positions = normalized;
+        const computedValue = normalized.reduce((sum, pos) => {
+          const value = parseNumber(pos?.currentValue);
+          return value != null ? sum + value : sum;
+        }, 0);
+        this.positionsValue = computedValue;
+      } else {
+        this.positions = [];
+        this.positionsValue = null;
       }
+      touched = true;
+    }
 
-      const data = await response.json();
-      if (!Array.isArray(data)) {
-        throw new Error("Unexpected positions response format");
-      }
+    if (Object.prototype.hasOwnProperty.call(state, "positionsUpdatedAt")) {
+      const rawUpdatedAt = state.positionsUpdatedAt;
+      this.positionsUpdatedAt =
+        typeof rawUpdatedAt === "number" && !Number.isNaN(rawUpdatedAt)
+          ? rawUpdatedAt
+          : null;
+      touched = true;
+    }
 
-      const normalized = data.map((entry) => this.normalizePosition(entry));
-      normalized.sort((a, b) => (b.currentValue ?? 0) - (a.currentValue ?? 0));
-
-      this.positions = normalized;
-      this.positionsUpdatedAt = Date.now();
-      this.positionsValue = normalized.reduce((sum, pos) => {
-        const value = parseNumber(pos?.currentValue);
-        return value != null ? sum + value : sum;
-      }, 0);
-      return normalized.length;
-    } catch (error) {
-      console.error("Failed to load positions", error);
-      this.positions = [];
-      this.positionsUpdatedAt = null;
-      this.positionsValue = null;
-      if (!silent) {
+    if (Object.prototype.hasOwnProperty.call(state, "positionsError")) {
+      const errorValue = state.positionsError;
+      this.positionsError = errorValue ? String(errorValue) : "";
+      if (!silent && this.positionsError) {
         this.statusMessage = "";
       }
-      if (!silent) {
-        throw error;
-      }
-      return 0;
-    } finally {
+      touched = true;
+    }
+
+    if (touched) {
       this.positionsLoading = false;
     }
   }
