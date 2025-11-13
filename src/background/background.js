@@ -52,14 +52,14 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 async function refreshNow() {
   const { address } = await chrome.storage.sync.get(["address"]);
   if (!address || !ADDRESS_REGEX.test(address)) {
-    const message = "No valid 0x address set.";
+    const errorMessage = "No valid 0x address set.";
     await Promise.all([
       chrome.storage.sync.set({
         totalValue: null,
         positionsValue: null,
         cashBalance: null,
         lastUpdated: Date.now(),
-        lastError: message,
+        lastError: errorMessage,
       }),
       chrome.storage.session.set({
         positions: [],
@@ -68,7 +68,7 @@ async function refreshNow() {
       }),
     ]);
     updateBadge("—", message);
-    return { ok: false, error: message };
+    return { ok: false, error: errorMessage };
   }
 
   try {
@@ -78,80 +78,50 @@ async function refreshNow() {
       fetchPositions(address),
     ]);
 
-    const [positionsValueResult, cashBalanceResult, positionsResult] = results;
+    const [positionsValue, cashBalance, positions] = results.map((result) =>
+      result.status === "fulfilled"
+        ? result.value
+        : {
+            error: result.reason?.message || String(result.reason) || null,
+          },
+    );
 
-    const positionsValue =
-      positionsValueResult.status === "fulfilled"
-        ? positionsValueResult.value
-        : null;
-    const cashBalance =
-      cashBalanceResult.status === "fulfilled" ? cashBalanceResult.value : null;
-    const positionsData =
-      positionsResult.status === "fulfilled" ? positionsResult.value : null;
-
-    if (positionsValue == null && cashBalance == null) {
-      const reasons =
-        results
-          .filter((result) => result.status === "rejected")
-          .map((result) => String(result.reason?.message || result.reason))
-          .join("; ") || "Unknown error";
-      throw new Error(reasons);
-    }
-
-    const totalValue = (positionsValue || 0) + (cashBalance || 0);
-
-    const partialErrors = results
-      .filter((result) => result.status === "rejected")
-      .map((result) => result.reason?.message || String(result.reason));
-
-    const errorMessage = partialErrors.length ? partialErrors.join("; ") : null;
-
-    const sessionUpdate = {};
-    if (Array.isArray(positionsData)) {
-      sessionUpdate.positions = positionsData;
-      sessionUpdate.positionsUpdatedAt = Date.now();
-      sessionUpdate.positionsError = null;
-    } else if (positionsResult.status === "rejected") {
-      sessionUpdate.positionsError =
-        positionsResult.reason?.message || String(positionsResult.reason);
+    if (positionsValue.error && cashBalance.error) {
+      throw new Error([positionsValue.error, cashBalance.error].join(" & "));
     }
 
     await Promise.all([
       chrome.storage.sync.set({
-        totalValue,
         positionsValue,
         cashBalance,
         lastUpdated: Date.now(),
-        lastError: errorMessage,
+        lastError: positionsValue.error || cashBalance.error || null,
       }),
-      Object.keys(sessionUpdate).length
-        ? chrome.storage.session.set(sessionUpdate)
-        : Promise.resolve(),
+      chrome.storage.session.set({
+        positions,
+        positionsUpdatedAt: Date.now(),
+        positionsError: positions.error || null,
+      }),
     ]);
 
+    const totalValue = Number(positionsValue) + Number(cashBalance);
     updateBadge(
       formatBadge(totalValue),
       `Portfolio Total: $${Number(totalValue).toLocaleString()}`,
     );
 
-    return {
-      ok: true,
-      totalValue,
-      positionsValue,
-      cashBalance,
-      error: errorMessage,
-    };
-  } catch (e) {
-    const message = String(e);
+    return { ok: true, totalValue, positionsValue, cashBalance };
+  } catch (error) {
+    const errorMessage = String(error);
     await Promise.all([
       chrome.storage.sync.set({
-        lastError: message,
+        lastError: errorMessage,
         lastUpdated: Date.now(),
       }),
-      chrome.storage.session.set({ positionsError: message }),
+      chrome.storage.session.set({ positionsError: errorMessage }),
     ]);
     updateBadge("!", `Error fetching value: ${e}`);
-    return { ok: false, error: message };
+    return { ok: false, error: errorMessage };
   }
 }
 
