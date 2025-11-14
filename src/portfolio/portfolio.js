@@ -401,41 +401,22 @@ class TidviewPortfolio extends LitElement {
   async requestRefresh({ recordTimestamp = false } = {}) {
     try {
       const res = await chrome.runtime.sendMessage({ type: "refresh" });
-      if (res?.ok) {
-        if (Object.prototype.hasOwnProperty.call(res, "positionsValue")) {
-          this.positionsValue = parseNumber(res.positionsValue);
-        }
-        if (Object.prototype.hasOwnProperty.call(res, "cashValue")) {
-          this.cashValue = parseNumber(res.cashValue);
-        }
-        if (recordTimestamp) {
-          this.valuesUpdatedAt = Date.now();
-          this.statusMessage = `Updated: ${new Date(this.valuesUpdatedAt).toLocaleString()}`;
-        }
-        this.valuesError = res?.error ? String(res.error) : "";
-        return true;
+      if (!res?.success) {
+        throw new Error(res?.error || "Unknown error during refresh");
       }
-
-      const errorMessage = res?.error || "Unknown error";
+      return true;
+    } catch (error) {
+      const errorMessage = error?.message || "Failed to refresh balance.";
+      console.error("Failed to refresh", errorMessage);
       this.valuesError = errorMessage;
       if (!recordTimestamp && this.valuesUpdatedAt) {
         this.statusMessage = `Last updated: ${new Date(this.valuesUpdatedAt).toLocaleString()}`;
       } else {
         this.statusMessage = "";
       }
-      this.positionsLoading = false;
       return false;
-    } catch (error) {
-      console.error("Failed to refresh portfolio", error);
-      const message = error?.message || "Failed to refresh balance.";
-      this.valuesError = message;
-      if (!recordTimestamp && this.valuesUpdatedAt) {
-        this.statusMessage = `Last updated: ${new Date(this.valuesUpdatedAt).toLocaleString()}`;
-      } else {
-        this.statusMessage = "";
-      }
+    } finally {
       this.positionsLoading = false;
-      return false;
     }
   }
 

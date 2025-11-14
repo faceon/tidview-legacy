@@ -1,4 +1,4 @@
-import { formatBadge } from "../common/format.js";
+import { formatBadge, formatNumber } from "../common/format.js";
 import {
   fetchCashValue,
   fetchPositions,
@@ -31,8 +31,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm?.name === "poll") refreshNow();
 });
 
-chrome.runtime.onMessage.addListener((msg) => {
-  if (msg?.type === "refresh") refreshNow();
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg?.type === "refresh") refreshNow().then(sendResponse);
+  return true;
 });
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
@@ -64,6 +65,7 @@ async function refreshNow() {
       throw new Error([positionsValue.error, cashValue.error].join(" ; "));
     }
 
+    // TODO: validate values and positions format
     await Promise.all([
       chrome.storage.sync.set({
         positionsValue,
@@ -84,6 +86,8 @@ async function refreshNow() {
       formatBadge(totalValue),
       `Portfolio Total: $${Number(totalValue).toLocaleString()}`,
     );
+
+    return { success: true };
   } catch (error) {
     const errorMessage = error?.message || String(error) || "Unknown error";
     await Promise.all([
@@ -97,6 +101,8 @@ async function refreshNow() {
       }),
     ]);
     updateBadge("-", `Error fetching data: ${errorMessage}`);
+
+    return { success: false, error: errorMessage };
   }
 }
 
