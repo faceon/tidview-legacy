@@ -36,17 +36,12 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm?.name === "poll") refreshNow();
 });
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg?.type === "refresh") {
-    refreshNow().then(sendResponse);
-    return true;
-  }
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg?.type === "refresh") refreshNow();
 });
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName !== "sync") return;
-  if (!Object.prototype.hasOwnProperty.call(changes, "address")) return;
-  refreshNow();
+  if (areaName == "sync" && "address" in changes) refreshNow();
 });
 
 async function refreshNow() {
@@ -71,7 +66,7 @@ async function refreshNow() {
     );
 
     if (positionsValue.error && cashValue.error) {
-      throw new Error([positionsValue.error, cashValue.error].join(" & "));
+      throw new Error([positionsValue.error, cashValue.error].join(" ; "));
     }
 
     await Promise.all([
@@ -94,8 +89,6 @@ async function refreshNow() {
       formatBadge(totalValue),
       `Portfolio Total: $${Number(totalValue).toLocaleString()}`,
     );
-
-    return { ok: true, totalValue, positionsValue, cashValue };
   } catch (error) {
     const errorMessage = error?.message || String(error) || "Unknown error";
     await Promise.all([
@@ -108,9 +101,7 @@ async function refreshNow() {
         positionsUpdatedAt: Date.now(),
       }),
     ]);
-    updateBadge("-", `Error fetching total value: ${errorMessage}`);
-
-    return { ok: false, error: errorMessage };
+    updateBadge("-", `Error fetching data: ${errorMessage}`);
   }
 }
 
