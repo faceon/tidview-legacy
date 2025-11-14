@@ -10,7 +10,6 @@ import "@material/web/button/filled-tonal-button.js";
 
 const STORAGE_SYNC_KEYS = [
   "address",
-  "totalValue",
   "positionsValue",
   "cashValue",
   "valuesUpdatedAt",
@@ -30,7 +29,6 @@ class TidviewPortfolio extends LitElement {
   static properties = {
     address: { type: String },
     hasAddress: { type: Boolean },
-    totalValue: { type: Number },
     valuesUpdatedAt: { type: Number },
     valuesError: { type: String },
     statusMessage: { type: String },
@@ -49,7 +47,6 @@ class TidviewPortfolio extends LitElement {
     super();
     this.address = "";
     this.hasAddress = false;
-    this.totalValue = null;
     this.valuesUpdatedAt = null;
     this.valuesError = "";
     this.statusMessage = "";
@@ -66,21 +63,21 @@ class TidviewPortfolio extends LitElement {
   }
 
   render() {
-    const positionsValueNumber = parseNumber(this.positionsValue);
-    const cashValueNumber = parseNumber(this.cashValue);
-    const storedTotal = parseNumber(this.totalValue);
-    const computedTotal =
-      storedTotal != null
-        ? storedTotal
-        : positionsValueNumber != null || cashValueNumber != null
-          ? (positionsValueNumber ?? 0) + (cashValueNumber ?? 0)
-          : null;
+    const positionsValue = parseNumber(this.positionsValue);
+    const cashValue = parseNumber(this.cashValue);
+    const totalValue =
+      positionsValue == null && cashValue == null
+        ? null
+        : (positionsValue ?? 0) + (cashValue ?? 0);
 
-    const totalDisplay = formatCurrency(computedTotal);
-    const positionsDisplay = formatCurrency(positionsValueNumber);
-    const cashDisplay = formatCurrency(cashValueNumber);
-    const hasPortfolioValues =
-      totalDisplay !== "—" || positionsDisplay !== "—" || cashDisplay !== "—";
+    const displayValues = {
+      total: formatCurrency(totalValue),
+      positions: formatCurrency(positionsValue),
+      cash: formatCurrency(cashValue),
+    };
+    const hasPortfolioValues = Object.values(displayValues).some(
+      (value) => value !== "—",
+    );
 
     return html`
       <div class="scroll-area">
@@ -152,15 +149,15 @@ class TidviewPortfolio extends LitElement {
             <div class="value-rows">
               <div class="value-row value-total">
                 <span>Total</span>
-                <span>${totalDisplay}</span>
+                <span>${displayValues.total}</span>
               </div>
               <div class="value-row">
                 <span>Positions</span>
-                <span>${positionsDisplay}</span>
+                <span>${displayValues.positions}</span>
               </div>
               <div class="value-row">
                 <span>Cash</span>
-                <span>${cashDisplay}</span>
+                <span>${displayValues.cash}</span>
               </div>
             </div>
           </div>
@@ -219,7 +216,6 @@ class TidviewPortfolio extends LitElement {
 
       const {
         address,
-        totalValue,
         valuesUpdatedAt,
         valuesError,
         positionsValue,
@@ -228,8 +224,6 @@ class TidviewPortfolio extends LitElement {
 
       this.address = typeof address === "string" ? address.trim() : "";
       this.hasAddress = cfg.ADDRESS_REGEX.test(this.address);
-      this.totalValue =
-        typeof totalValue === "number" ? totalValue : parseNumber(totalValue);
       this.valuesUpdatedAt =
         typeof valuesUpdatedAt === "number"
           ? valuesUpdatedAt
@@ -289,10 +283,6 @@ class TidviewPortfolio extends LitElement {
           this.positionsError = "";
           this.positionsLoading = false;
         }
-      }
-
-      if (Object.prototype.hasOwnProperty.call(changes, "totalValue")) {
-        this.totalValue = parseNumber(changes.totalValue.newValue);
       }
 
       if (Object.prototype.hasOwnProperty.call(changes, "positionsValue")) {
@@ -427,9 +417,6 @@ class TidviewPortfolio extends LitElement {
     try {
       const res = await chrome.runtime.sendMessage({ type: "refresh" });
       if (res?.ok) {
-        if (Object.prototype.hasOwnProperty.call(res, "totalValue")) {
-          this.totalValue = parseNumber(res.totalValue);
-        }
         if (Object.prototype.hasOwnProperty.call(res, "positionsValue")) {
           this.positionsValue = parseNumber(res.positionsValue);
         }
