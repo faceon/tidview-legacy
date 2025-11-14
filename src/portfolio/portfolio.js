@@ -8,19 +8,6 @@ import "@material/web/icon/icon.js";
 import "@material/web/button/outlined-button.js";
 import "@material/web/button/filled-tonal-button.js";
 
-const STORAGE_SYNC_KEYS = [
-  "address",
-  "positionsValue",
-  "cashValue",
-  "valuesUpdatedAt",
-  "valuesError",
-];
-const STORAGE_SESSION_KEYS = [
-  "positions",
-  "positionsUpdatedAt",
-  "positionsError",
-];
-
 class TidviewPortfolio extends LitElement {
   static styles = css`
     ${unsafeCSS(portfolioCss)}
@@ -56,10 +43,8 @@ class TidviewPortfolio extends LitElement {
     this.positionsUpdatedAt = null;
     this.positionsValue = null;
     this.positionsError = "";
-    this.boundOpenMarket = this.openMarket.bind(this);
     this.copied = false;
     this.cashValue = null;
-    this.boundStorageChange = this.handleStorageChange.bind(this);
   }
 
   render() {
@@ -168,7 +153,7 @@ class TidviewPortfolio extends LitElement {
           <positions-section
             .positions=${/** @type {any} */ (this.positions)}
             .loading=${this.positionsLoading}
-            .openMarket=${this.boundOpenMarket}
+            .openMarket=${this.openMarket}
           ></positions-section>
 
           ${this.positionsError
@@ -191,14 +176,14 @@ class TidviewPortfolio extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     if (chrome?.storage?.onChanged) {
-      chrome.storage.onChanged.addListener(this.boundStorageChange);
+      chrome.storage.onChanged.addListener(this.handleStorageChange);
     }
     this.initFromStorage();
   }
 
   disconnectedCallback() {
     if (chrome?.storage?.onChanged) {
-      chrome.storage.onChanged.removeListener(this.boundStorageChange);
+      chrome.storage.onChanged.removeListener(this.handleStorageChange);
     }
     super.disconnectedCallback();
   }
@@ -210,8 +195,8 @@ class TidviewPortfolio extends LitElement {
       }
 
       const [syncData, sessionData] = await Promise.all([
-        chrome.storage.sync.get(STORAGE_SYNC_KEYS),
-        chrome.storage.session.get(STORAGE_SESSION_KEYS),
+        chrome.storage.sync.get(),
+        chrome.storage.session.get(),
       ]);
 
       const {
@@ -256,7 +241,7 @@ class TidviewPortfolio extends LitElement {
     }
   }
 
-  handleStorageChange(changes, areaName) {
+  handleStorageChange = (changes, areaName) => {
     if (areaName === "sync") {
       let shouldUpdateStatus = false;
 
@@ -332,7 +317,7 @@ class TidviewPortfolio extends LitElement {
         this.applyPositionsState(sessionUpdate);
       }
     }
-  }
+  };
 
   updateStatusFromState() {
     if (this.valuesError) {
@@ -537,7 +522,7 @@ class TidviewPortfolio extends LitElement {
     };
   }
 
-  openMarket(slug, fallbackSlug) {
+  openMarket = (slug, fallbackSlug) => {
     const finalSlug = slug || fallbackSlug;
     if (!finalSlug) return;
     const url = `https://polymarket.com/market/${finalSlug}`;
@@ -546,7 +531,7 @@ class TidviewPortfolio extends LitElement {
     } else {
       window.open(url, "_blank", "noopener,noreferrer");
     }
-  }
+  };
 
   handleCopyAddress() {
     if (!this.hasAddress) return;
