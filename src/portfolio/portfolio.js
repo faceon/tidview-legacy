@@ -1,5 +1,6 @@
 import { LitElement, html, css, unsafeCSS } from "lit";
 import { parseNumber, formatCurrency } from "../common/format.js";
+import cfg from "../common/config.js";
 import portfolioCss from "./portfolio.css";
 import "./positions-section.js";
 import "@material/web/iconButton/filled-icon-button.js";
@@ -7,7 +8,6 @@ import "@material/web/icon/icon.js";
 import "@material/web/button/outlined-button.js";
 import "@material/web/button/filled-tonal-button.js";
 
-const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
 const STORAGE_SYNC_KEYS = [
   "address",
   "totalValue",
@@ -227,7 +227,7 @@ class TidviewPortfolio extends LitElement {
       } = syncData;
 
       this.address = typeof address === "string" ? address.trim() : "";
-      this.hasAddress = ADDRESS_REGEX.test(this.address);
+      this.hasAddress = cfg.ADDRESS_REGEX.test(this.address);
       this.totalValue =
         typeof totalValue === "number" ? totalValue : parseNumber(totalValue);
       this.valuesUpdatedAt =
@@ -272,7 +272,7 @@ class TidviewPortfolio extends LitElement {
           typeof newAddressRaw === "string" ? newAddressRaw.trim() : "";
         const previousAddress = this.address;
         this.address = newAddress;
-        this.hasAddress = ADDRESS_REGEX.test(newAddress);
+        this.hasAddress = cfg.ADDRESS_REGEX.test(newAddress);
 
         if (this.hasAddress && newAddress !== previousAddress) {
           this.positions = [];
@@ -366,8 +366,8 @@ class TidviewPortfolio extends LitElement {
 
   async handleSave() {
     const trimmed = this.address.trim();
-    if (!ADDRESS_REGEX.test(trimmed)) {
-      this.valuesError = "Please enter a valid 0x address.";
+    if (!cfg.ADDRESS_REGEX.test(trimmed)) {
+      this.lastError = "Please enter a valid 0x address.";
       this.statusMessage = "";
       return;
     }
@@ -396,7 +396,7 @@ class TidviewPortfolio extends LitElement {
 
   async handleRefresh() {
     const trimmed = this.address.trim();
-    if (!ADDRESS_REGEX.test(trimmed)) {
+    if (!cfg.ADDRESS_REGEX.test(trimmed)) {
       this.valuesError = "Please enter a valid 0x address.";
       this.statusMessage = "";
       return;

@@ -4,28 +4,23 @@ import {
   fetchPositions,
   fetchPositionsValue,
 } from "./polymarket-api.js";
-
-const POLL_MINUTES = 5;
-const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
-const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
-const PORTFOLIO_PATH = "portfolio.html";
-const BADGE_COLOR = "#4873ffff";
+import cfg from "../common/config.js";
 
 chrome.runtime.onInstalled.addListener(() => {
   // Side panel for development, popup for production
-  if (IS_DEVELOPMENT) {
-    chrome.sidePanel.setOptions({ path: PORTFOLIO_PATH });
+  if (cfg.IS_DEVELOPMENT) {
+    chrome.sidePanel.setOptions({ path: cfg.PORTFOLIO_PATH });
     chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
   } else {
-    chrome.action.setPopup({ popup: PORTFOLIO_PATH });
+    chrome.action.setPopup({ popup: cfg.PORTFOLIO_PATH });
   }
 
   // Set badge background color
-  chrome.action.setBadgeBackgroundColor({ color: BADGE_COLOR });
+  chrome.action.setBadgeBackgroundColor({ color: cfg.BADGE_COLOR });
 
   // Schedule polling alarm
   chrome.alarms.clearAll(() => {
-    chrome.alarms.create("poll", { periodInMinutes: POLL_MINUTES });
+    chrome.alarms.create("poll", { periodInMinutes: cfg.POLL_MINUTES });
   });
 
   // Initial data refresh
@@ -46,7 +41,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 
 async function refreshNow() {
   const { address } = await chrome.storage.sync.get(["address"]);
-  if (!address || !ADDRESS_REGEX.test(address)) {
+  if (!address || !cfg.ADDRESS_REGEX.test(address)) {
     throw new Error("No valid 0x address set.");
   }
 
