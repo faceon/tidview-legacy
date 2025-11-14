@@ -52,23 +52,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 async function refreshNow() {
   const { address } = await chrome.storage.sync.get(["address"]);
   if (!address || !ADDRESS_REGEX.test(address)) {
-    const errorMessage = "No valid 0x address set.";
-    await Promise.all([
-      chrome.storage.sync.set({
-        totalValue: null,
-        positionsValue: null,
-        cashBalance: null,
-        lastUpdated: Date.now(),
-        lastError: errorMessage,
-      }),
-      chrome.storage.session.set({
-        positions: [],
-        positionsUpdatedAt: null,
-        positionsError: message,
-      }),
-    ]);
-    updateBadge("—", message);
-    return { ok: false, error: errorMessage };
+    throw new Error("No valid 0x address set.");
   }
 
   try {
@@ -105,6 +89,7 @@ async function refreshNow() {
     ]);
 
     const totalValue = Number(positionsValue) + Number(cashBalance);
+
     updateBadge(
       formatBadge(totalValue),
       `Portfolio Total: $${Number(totalValue).toLocaleString()}`,
@@ -112,20 +97,23 @@ async function refreshNow() {
 
     return { ok: true, totalValue, positionsValue, cashBalance };
   } catch (error) {
-    const errorMessage = String(error);
+    const errorMessage = error?.message || String(error) || "Unknown error";
     await Promise.all([
       chrome.storage.sync.set({
         lastError: errorMessage,
         lastUpdated: Date.now(),
       }),
-      chrome.storage.session.set({ positionsError: errorMessage }),
+      chrome.storage.session.set({
+        positionsError: errorMessage,
+        positionsUpdatedAt: Date.now(),
+      }),
     ]);
-    updateBadge("!", `Error fetching value: ${e}`);
+    updateBadge("-", `Error fetching total value: ${errorMessage}`);
+
     return { ok: false, error: errorMessage };
   }
 }
 
-// 배지 업데이트 함수 (분리)
 function updateBadge(text, title) {
   chrome.action.setBadgeText({ text });
   chrome.action.setTitle({ title });
