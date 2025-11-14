@@ -12,9 +12,9 @@ const STORAGE_SYNC_KEYS = [
   "address",
   "totalValue",
   "positionsValue",
-  "cashBalance",
-  "lastUpdated",
-  "lastError",
+  "cashValue",
+  "valuesUpdatedAt",
+  "valuesError",
 ];
 const STORAGE_SESSION_KEYS = [
   "positions",
@@ -31,8 +31,8 @@ class TidviewPortfolio extends LitElement {
     address: { type: String },
     hasAddress: { type: Boolean },
     totalValue: { type: Number },
-    lastUpdated: { type: Number },
-    lastError: { type: String },
+    valuesUpdatedAt: { type: Number },
+    valuesError: { type: String },
     statusMessage: { type: String },
     isBusy: { type: Boolean },
     /** @type {any[]} */
@@ -42,7 +42,7 @@ class TidviewPortfolio extends LitElement {
     positionsValue: { type: Number },
     positionsError: { type: String },
     copied: { type: Boolean },
-    cashBalance: { type: Number },
+    cashValue: { type: Number },
   };
 
   constructor() {
@@ -50,8 +50,8 @@ class TidviewPortfolio extends LitElement {
     this.address = "";
     this.hasAddress = false;
     this.totalValue = null;
-    this.lastUpdated = null;
-    this.lastError = "";
+    this.valuesUpdatedAt = null;
+    this.valuesError = "";
     this.statusMessage = "";
     this.isBusy = false;
     this.positions = [];
@@ -61,13 +61,13 @@ class TidviewPortfolio extends LitElement {
     this.positionsError = "";
     this.boundOpenMarket = this.openMarket.bind(this);
     this.copied = false;
-    this.cashBalance = null;
+    this.cashValue = null;
     this.boundStorageChange = this.handleStorageChange.bind(this);
   }
 
   render() {
     const positionsValueNumber = parseNumber(this.positionsValue);
-    const cashValueNumber = parseNumber(this.cashBalance);
+    const cashValueNumber = parseNumber(this.cashValue);
     const storedTotal = parseNumber(this.totalValue);
     const computedTotal =
       storedTotal != null
@@ -143,8 +143,8 @@ class TidviewPortfolio extends LitElement {
 
         <!-- value card -->
         <div class="value-card">
-          <div class="error ${!this.lastError ? "display-none" : ""}">
-            ${this.lastError}
+          <div class="error ${!this.valuesError ? "display-none" : ""}">
+            ${this.valuesError}
           </div>
 
           <div class="${hasPortfolioValues ? "" : "display-none"}">
@@ -220,29 +220,27 @@ class TidviewPortfolio extends LitElement {
       const {
         address,
         totalValue,
-        lastUpdated,
-        lastError,
+        valuesUpdatedAt,
+        valuesError,
         positionsValue,
-        cashBalance,
+        cashValue,
       } = syncData;
 
       this.address = typeof address === "string" ? address.trim() : "";
       this.hasAddress = ADDRESS_REGEX.test(this.address);
       this.totalValue =
         typeof totalValue === "number" ? totalValue : parseNumber(totalValue);
-      this.lastUpdated =
-        typeof lastUpdated === "number"
-          ? lastUpdated
-          : parseNumber(lastUpdated);
-      this.lastError = lastError ?? "";
+      this.valuesUpdatedAt =
+        typeof valuesUpdatedAt === "number"
+          ? valuesUpdatedAt
+          : parseNumber(valuesUpdatedAt);
+      this.valuesError = valuesError ?? "";
       this.positionsValue =
         typeof positionsValue === "number"
           ? positionsValue
           : parseNumber(positionsValue);
-      this.cashBalance =
-        typeof cashBalance === "number"
-          ? cashBalance
-          : parseNumber(cashBalance);
+      this.cashValue =
+        typeof cashValue === "number" ? cashValue : parseNumber(cashValue);
 
       const hasPositionsData = Array.isArray(sessionData?.positions);
       this.positionsLoading = this.hasAddress && !hasPositionsData;
@@ -259,7 +257,7 @@ class TidviewPortfolio extends LitElement {
       this.updateStatusFromState();
     } catch (error) {
       console.error("Failed to initialize from storage", error);
-      this.lastError = "Unable to load current status.";
+      this.valuesError = "Unable to load current status.";
       this.statusMessage = "";
     }
   }
@@ -301,20 +299,20 @@ class TidviewPortfolio extends LitElement {
         this.positionsValue = parseNumber(changes.positionsValue.newValue);
       }
 
-      if (Object.prototype.hasOwnProperty.call(changes, "cashBalance")) {
-        this.cashBalance = parseNumber(changes.cashBalance.newValue);
+      if (Object.prototype.hasOwnProperty.call(changes, "cashValue")) {
+        this.cashValue = parseNumber(changes.cashValue.newValue);
       }
 
-      if (Object.prototype.hasOwnProperty.call(changes, "lastUpdated")) {
-        const rawValue = changes.lastUpdated.newValue;
-        this.lastUpdated =
+      if (Object.prototype.hasOwnProperty.call(changes, "valuesUpdatedAt")) {
+        const rawValue = changes.valuesUpdatedAt.newValue;
+        this.valuesUpdatedAt =
           typeof rawValue === "number" ? rawValue : parseNumber(rawValue);
         shouldUpdateStatus = true;
       }
 
-      if (Object.prototype.hasOwnProperty.call(changes, "lastError")) {
-        const errorValue = changes.lastError.newValue;
-        this.lastError = errorValue ? String(errorValue) : "";
+      if (Object.prototype.hasOwnProperty.call(changes, "valuesError")) {
+        const errorValue = changes.valuesError.newValue;
+        this.valuesError = errorValue ? String(errorValue) : "";
         shouldUpdateStatus = true;
       }
 
@@ -347,16 +345,16 @@ class TidviewPortfolio extends LitElement {
   }
 
   updateStatusFromState() {
-    if (this.lastError) {
+    if (this.valuesError) {
       this.statusMessage = "";
       return;
     }
 
     if (
-      typeof this.lastUpdated === "number" &&
-      !Number.isNaN(this.lastUpdated)
+      typeof this.valuesUpdatedAt === "number" &&
+      !Number.isNaN(this.valuesUpdatedAt)
     ) {
-      this.statusMessage = `Last updated: ${new Date(this.lastUpdated).toLocaleString()}`;
+      this.statusMessage = `Last updated: ${new Date(this.valuesUpdatedAt).toLocaleString()}`;
     } else {
       this.statusMessage = "";
     }
@@ -369,13 +367,13 @@ class TidviewPortfolio extends LitElement {
   async handleSave() {
     const trimmed = this.address.trim();
     if (!ADDRESS_REGEX.test(trimmed)) {
-      this.lastError = "Please enter a valid 0x address.";
+      this.valuesError = "Please enter a valid 0x address.";
       this.statusMessage = "";
       return;
     }
 
     this.isBusy = true;
-    this.lastError = "";
+    this.valuesError = "";
     this.statusMessage = "Saved. Refreshing...";
     this.positionsLoading = true;
     this.positionsError = "";
@@ -388,7 +386,7 @@ class TidviewPortfolio extends LitElement {
       }
     } catch (error) {
       console.error("Failed to save address", error);
-      this.lastError = error?.message || "Failed to save address.";
+      this.valuesError = error?.message || "Failed to save address.";
       this.statusMessage = "";
       this.positionsLoading = false;
     } finally {
@@ -399,13 +397,13 @@ class TidviewPortfolio extends LitElement {
   async handleRefresh() {
     const trimmed = this.address.trim();
     if (!ADDRESS_REGEX.test(trimmed)) {
-      this.lastError = "Please enter a valid 0x address.";
+      this.valuesError = "Please enter a valid 0x address.";
       this.statusMessage = "";
       return;
     }
 
     this.isBusy = true;
-    this.lastError = "";
+    this.valuesError = "";
     this.statusMessage = "Refreshing...";
     this.positionsLoading = true;
     this.positionsError = "";
@@ -417,7 +415,7 @@ class TidviewPortfolio extends LitElement {
       }
     } catch (error) {
       console.error("Failed to refresh balance", error);
-      this.lastError = error?.message || "Failed to refresh balance.";
+      this.valuesError = error?.message || "Failed to refresh balance.";
       this.statusMessage = "";
       this.positionsLoading = false;
     } finally {
@@ -435,21 +433,21 @@ class TidviewPortfolio extends LitElement {
         if (Object.prototype.hasOwnProperty.call(res, "positionsValue")) {
           this.positionsValue = parseNumber(res.positionsValue);
         }
-        if (Object.prototype.hasOwnProperty.call(res, "cashBalance")) {
-          this.cashBalance = parseNumber(res.cashBalance);
+        if (Object.prototype.hasOwnProperty.call(res, "cashValue")) {
+          this.cashValue = parseNumber(res.cashValue);
         }
         if (recordTimestamp) {
-          this.lastUpdated = Date.now();
-          this.statusMessage = `Updated: ${new Date(this.lastUpdated).toLocaleString()}`;
+          this.valuesUpdatedAt = Date.now();
+          this.statusMessage = `Updated: ${new Date(this.valuesUpdatedAt).toLocaleString()}`;
         }
-        this.lastError = res?.error ? String(res.error) : "";
+        this.valuesError = res?.error ? String(res.error) : "";
         return true;
       }
 
       const errorMessage = res?.error || "Unknown error";
-      this.lastError = errorMessage;
-      if (!recordTimestamp && this.lastUpdated) {
-        this.statusMessage = `Last updated: ${new Date(this.lastUpdated).toLocaleString()}`;
+      this.valuesError = errorMessage;
+      if (!recordTimestamp && this.valuesUpdatedAt) {
+        this.statusMessage = `Last updated: ${new Date(this.valuesUpdatedAt).toLocaleString()}`;
       } else {
         this.statusMessage = "";
       }
@@ -458,9 +456,9 @@ class TidviewPortfolio extends LitElement {
     } catch (error) {
       console.error("Failed to refresh portfolio", error);
       const message = error?.message || "Failed to refresh balance.";
-      this.lastError = message;
-      if (!recordTimestamp && this.lastUpdated) {
-        this.statusMessage = `Last updated: ${new Date(this.lastUpdated).toLocaleString()}`;
+      this.valuesError = message;
+      if (!recordTimestamp && this.valuesUpdatedAt) {
+        this.statusMessage = `Last updated: ${new Date(this.valuesUpdatedAt).toLocaleString()}`;
       } else {
         this.statusMessage = "";
       }

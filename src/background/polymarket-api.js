@@ -50,7 +50,7 @@ function normalizeAddress(address) {
   return address.trim().toLowerCase().replace(/^0x/, "");
 }
 
-export async function fetchCashBalance(address) {
+export async function fetchCashValue(address) {
   const normalizedAddress = normalizeAddress(address);
   const data = ERC20_BALANCE_OF_SELECTOR + normalizedAddress.padStart(64, "0");
 

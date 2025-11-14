@@ -1,6 +1,6 @@
 import { formatBadge } from "../common/format.js";
 import {
-  fetchCashBalance,
+  fetchCashValue,
   fetchPositions,
   fetchPositionsValue,
 } from "./polymarket-api.js";
@@ -58,11 +58,11 @@ async function refreshNow() {
   try {
     const results = await Promise.allSettled([
       fetchPositionsValue(address),
-      fetchCashBalance(address),
+      fetchCashValue(address),
       fetchPositions(address),
     ]);
 
-    const [positionsValue, cashBalance, positions] = results.map((result) =>
+    const [positionsValue, cashValue, positions] = results.map((result) =>
       result.status === "fulfilled"
         ? result.value
         : {
@@ -70,16 +70,16 @@ async function refreshNow() {
           },
     );
 
-    if (positionsValue.error && cashBalance.error) {
-      throw new Error([positionsValue.error, cashBalance.error].join(" & "));
+    if (positionsValue.error && cashValue.error) {
+      throw new Error([positionsValue.error, cashValue.error].join(" & "));
     }
 
     await Promise.all([
       chrome.storage.sync.set({
         positionsValue,
-        cashBalance,
-        lastUpdated: Date.now(),
-        lastError: positionsValue.error || cashBalance.error || null,
+        cashValue,
+        valuesUpdatedAt: Date.now(),
+        valuesError: positionsValue.error || cashValue.error || null,
       }),
       chrome.storage.session.set({
         positions,
@@ -88,20 +88,20 @@ async function refreshNow() {
       }),
     ]);
 
-    const totalValue = Number(positionsValue) + Number(cashBalance);
+    const totalValue = Number(positionsValue) + Number(cashValue);
 
     updateBadge(
       formatBadge(totalValue),
       `Portfolio Total: $${Number(totalValue).toLocaleString()}`,
     );
 
-    return { ok: true, totalValue, positionsValue, cashBalance };
+    return { ok: true, totalValue, positionsValue, cashValue };
   } catch (error) {
     const errorMessage = error?.message || String(error) || "Unknown error";
     await Promise.all([
       chrome.storage.sync.set({
-        lastError: errorMessage,
-        lastUpdated: Date.now(),
+        valuesError: errorMessage,
+        valuesUpdatedAt: Date.now(),
       }),
       chrome.storage.session.set({
         positionsError: errorMessage,
