@@ -47,6 +47,7 @@ class TidviewPortfolio extends LitElement {
     this.copied = false;
     this.cashValue = null;
     this.openInPopup = false;
+    this.lastActiveTabId = null;
   }
 
   render() {
@@ -98,7 +99,7 @@ class TidviewPortfolio extends LitElement {
               class="open-mode-toggle"
               @click=${this.handleToggleOpenMode}
             >
-              ${this.openInPopup ? "open in popup" : "open in sidePanel"}
+              ${this.openInPopup ? "move to sidePanel" : "move to popup"}
             </md-outlined-button>
           </div>
 
@@ -423,8 +424,84 @@ class TidviewPortfolio extends LitElement {
     this.openInPopup = nextValue;
     try {
       await chrome.storage.sync.set({ openInPopup: nextValue });
+      await chrome.runtime.sendMessage({
+        type: "setOpenMode",
+        openInPopup: nextValue,
+      });
+      if (nextValue) {
+        await this.openPopupView();
+      } else {
+        await this.openSidePanelView();
+      }
     } catch (error) {
       console.error("Failed to toggle open mode", error);
+    }
+  }
+
+  async openSidePanelView() {
+    if (!chrome?.sidePanel || !chrome?.tabs?.query) {
+      return;
+    }
+
+    try {
+      const tabs = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      const tabId = tabs?.[0]?.id;
+      if (typeof tabId === "number") {
+        this.lastActiveTabId = tabId;
+        await chrome.sidePanel.open({ tabId });
+      } else {
+        await chrome.sidePanel.open({});
+      }
+    } catch (error) {
+      console.error("Failed to open side panel", error);
+    }
+
+    if (typeof window !== "undefined" && window.close) {
+      window.close();
+    }
+  }
+
+  async openPopupView() {
+    await this.closeSidePanelIfNeeded();
+
+    if (chrome?.action?.openPopup) {
+      try {
+        await chrome.action.openPopup();
+      } catch (error) {
+        console.error("Failed to open popup", error);
+      }
+    }
+  }
+
+  async closeSidePanelIfNeeded() {
+    if (!chrome?.sidePanel) {
+      return;
+    }
+
+    let tabIdCandidate = this.lastActiveTabId;
+    if (typeof tabIdCandidate !== "number" && chrome?.tabs?.query) {
+      try {
+        const tabs = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+        tabIdCandidate = tabs?.[0]?.id;
+      } catch (error) {
+        console.error("Failed to query tabs for side panel close", error);
+      }
+    }
+
+    if (typeof tabIdCandidate !== "number") {
+      return;
+    }
+
+    try {
+      await chrome.sidePanel.close({ tabId: tabIdCandidate });
+    } catch (error) {
+      console.error("Failed to close side panel", error);
     }
   }
 

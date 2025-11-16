@@ -6,18 +6,14 @@ import {
 } from "./polymarket-api.js";
 import cfg from "../common/config.js";
 
-const DEFAULT_OPEN_IN_POPUP = false;
-
 chrome.runtime.onInstalled.addListener(() => {
-  // Set badge background color
-  chrome.action.setBadgeBackgroundColor({ color: cfg.BADGE_COLOR });
+  chrome.storage.sync.set({ openInPopup: cfg.DEFAULT_OPEN_IN_POPUP });
+  applyOpenMode(cfg.DEFAULT_OPEN_IN_POPUP);
 
-  // Schedule polling alarm
+  chrome.action.setBadgeBackgroundColor({ color: cfg.BADGE_COLOR });
   chrome.alarms.clearAll(() => {
     chrome.alarms.create("poll", { periodInMinutes: cfg.POLL_MINUTES });
   });
-
-  // Initial data refresh
   refreshNow();
 });
 
@@ -27,20 +23,29 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === "refresh") refreshNow().then(sendResponse);
+  if (msg?.type === "setOpenMode") {
+    applyOpenMode(msg.openInPopup)
+      .then(() => sendResponse({ success: true }))
+      .catch((error) =>
+        sendResponse({
+          success: false,
+          error: error?.message || String(error),
+        }),
+      );
+  }
   return true;
 });
+
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName === "sync") {
-    if ("address" in changes) refreshNow();
-    if ("openInPopup" in changes) {
-      applyActionMode(Boolean(changes.openInPopup.newValue));
-    }
-  }
+  if (areaName !== "sync") return;
+  if ("address" in changes) refreshNow();
+  if ("openInPopup" in changes) applyOpenMode(changes.openInPopup.newValue);
 });
 
-async function applyActionMode(openInPopup) {
+async function applyOpenMode(openInPopup) {
+  const isOpenInPopup = Boolean(openInPopup);
   try {
-    if (openInPopup) {
+    if (isOpenInPopup) {
       await chrome.action.setPopup({ popup: cfg.PORTFOLIO_PATH });
       await chrome.sidePanel.setPanelBehavior({
         openPanelOnActionClick: false,
@@ -51,26 +56,7 @@ async function applyActionMode(openInPopup) {
       await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
     }
   } catch (error) {
-    console.error("Failed to apply action mode", error);
-  }
-}
-
-async function ensureActionMode() {
-  if (!chrome?.storage?.sync) {
-    return;
-  }
-
-  try {
-    const { openInPopup } = await chrome.storage.sync.get(["openInPopup"]);
-    const resolved =
-      typeof openInPopup === "boolean" ? openInPopup : DEFAULT_OPEN_IN_POPUP;
-    if (typeof openInPopup === "undefined") {
-      await chrome.storage.sync.set({ openInPopup: resolved });
-    }
-
-    await applyActionMode(resolved);
-  } catch (error) {
-    console.error("Failed to initialize action mode", error);
+    console.error("Failed to apply open mode", error);
   }
 }
 
@@ -144,5 +130,3 @@ function updateBadge(text, title) {
   chrome.action.setBadgeText({ text });
   chrome.action.setTitle({ title });
 }
-
-ensureActionMode();
