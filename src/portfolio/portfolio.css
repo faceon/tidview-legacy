@@ -125,6 +125,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
+  flex-wrap: wrap;
 }
 
 .address-chip {
@@ -203,6 +204,14 @@ body {
   font-size: 12px;
   line-height: 1;
   min-width: 0;
+}
+
+.open-mode-toggle {
+  --md-outlined-button-container-height: var(--button-height);
+  text-transform: none;
+  font-size: 11px;
+  border-radius: var(--radius-pill);
+  padding: var(--space-compact) var(--space-md);
 }
 
 .primary-button[disabled],

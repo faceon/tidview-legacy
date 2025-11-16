@@ -6,15 +6,9 @@ import {
 } from "./polymarket-api.js";
 import cfg from "../common/config.js";
 
-chrome.runtime.onInstalled.addListener(() => {
-  // Side panel for development, popup for production
-  if (cfg.IS_DEVELOPMENT) {
-    chrome.sidePanel.setOptions({ path: cfg.PORTFOLIO_PATH });
-    chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
-  } else {
-    chrome.action.setPopup({ popup: cfg.PORTFOLIO_PATH });
-  }
+const DEFAULT_OPEN_IN_POPUP = false;
 
+chrome.runtime.onInstalled.addListener(() => {
   // Set badge background color
   chrome.action.setBadgeBackgroundColor({ color: cfg.BADGE_COLOR });
 
@@ -35,10 +29,50 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === "refresh") refreshNow().then(sendResponse);
   return true;
 });
-
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName == "sync" && "address" in changes) refreshNow();
+  if (areaName === "sync") {
+    if ("address" in changes) refreshNow();
+    if ("openInPopup" in changes) {
+      applyActionMode(Boolean(changes.openInPopup.newValue));
+    }
+  }
 });
+
+async function applyActionMode(openInPopup) {
+  try {
+    if (openInPopup) {
+      await chrome.action.setPopup({ popup: cfg.PORTFOLIO_PATH });
+      await chrome.sidePanel.setPanelBehavior({
+        openPanelOnActionClick: false,
+      });
+    } else {
+      await chrome.action.setPopup({ popup: "" });
+      await chrome.sidePanel.setOptions({ path: cfg.PORTFOLIO_PATH });
+      await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+    }
+  } catch (error) {
+    console.error("Failed to apply action mode", error);
+  }
+}
+
+async function ensureActionMode() {
+  if (!chrome?.storage?.sync) {
+    return;
+  }
+
+  try {
+    const { openInPopup } = await chrome.storage.sync.get(["openInPopup"]);
+    const resolved =
+      typeof openInPopup === "boolean" ? openInPopup : DEFAULT_OPEN_IN_POPUP;
+    if (typeof openInPopup === "undefined") {
+      await chrome.storage.sync.set({ openInPopup: resolved });
+    }
+
+    await applyActionMode(resolved);
+  } catch (error) {
+    console.error("Failed to initialize action mode", error);
+  }
+}
 
 async function refreshNow() {
   const { address } = await chrome.storage.sync.get(["address"]);
@@ -110,3 +144,5 @@ function updateBadge(text, title) {
   chrome.action.setBadgeText({ text });
   chrome.action.setTitle({ title });
 }
+
+ensureActionMode();

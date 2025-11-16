@@ -28,6 +28,7 @@ class TidviewPortfolio extends LitElement {
     positionsError: { type: String },
     copied: { type: Boolean },
     cashValue: { type: Number },
+    openInPopup: { type: Boolean },
   };
 
   constructor() {
@@ -45,6 +46,7 @@ class TidviewPortfolio extends LitElement {
     this.positionsError = "";
     this.copied = false;
     this.cashValue = null;
+    this.openInPopup = false;
   }
 
   render() {
@@ -90,6 +92,14 @@ class TidviewPortfolio extends LitElement {
             >
               ${this.isBusy ? "..." : "Refresh"}
             </md-filled-tonal-button>
+
+            <md-outlined-button
+              type="button"
+              class="open-mode-toggle"
+              @click=${this.handleToggleOpenMode}
+            >
+              ${this.openInPopup ? "open in popup" : "open in sidePanel"}
+            </md-outlined-button>
           </div>
 
           <div class="address-form ${this.hasAddress ? "display-none" : ""}">
@@ -205,6 +215,7 @@ class TidviewPortfolio extends LitElement {
         valuesError,
         positionsValue,
         cashValue,
+        openInPopup,
       } = syncData;
 
       this.address = typeof address === "string" ? address.trim() : "";
@@ -220,6 +231,7 @@ class TidviewPortfolio extends LitElement {
           : parseNumber(positionsValue);
       this.cashValue =
         typeof cashValue === "number" ? cashValue : parseNumber(cashValue);
+      this.openInPopup = Boolean(openInPopup);
 
       const hasPositionsData = Array.isArray(sessionData?.positions);
       this.positionsLoading = this.hasAddress && !hasPositionsData;
@@ -289,6 +301,10 @@ class TidviewPortfolio extends LitElement {
         const errorValue = changes.valuesError.newValue;
         this.valuesError = errorValue ? String(errorValue) : "";
         shouldUpdateStatus = true;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(changes, "openInPopup")) {
+        this.openInPopup = Boolean(changes.openInPopup.newValue);
       }
 
       if (shouldUpdateStatus) {
@@ -395,6 +411,20 @@ class TidviewPortfolio extends LitElement {
       this.positionsLoading = false;
     } finally {
       this.isBusy = false;
+    }
+  }
+
+  async handleToggleOpenMode() {
+    if (!chrome?.storage?.sync) {
+      return;
+    }
+
+    const nextValue = !this.openInPopup;
+    this.openInPopup = nextValue;
+    try {
+      await chrome.storage.sync.set({ openInPopup: nextValue });
+    } catch (error) {
+      console.error("Failed to toggle open mode", error);
     }
   }
 
