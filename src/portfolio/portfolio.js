@@ -4,8 +4,11 @@ import cfg from "../common/config.js";
 import portfolioCss from "./portfolio.css";
 import "./positions-section.js";
 import "@material/web/iconButton/filled-icon-button.js";
+import "@material/web/iconButton/icon-button.js";
 import "@material/web/icon/icon.js";
+import "@material/web/button/text-button.js";
 import "@material/web/button/outlined-button.js";
+import "@material/web/button/filled-button.js";
 import "@material/web/button/filled-tonal-button.js";
 
 class TidviewPortfolio extends LitElement {
@@ -72,34 +75,30 @@ class TidviewPortfolio extends LitElement {
         <!-- top row with title, address chip, and buttons -->
         <div class="top-controls">
           <div class="top-row">
-            <h2>Portfolio</h2>
-            <div
+            <md-text-button
               class="address-chip ${this.hasAddress ? "" : "display-none"}"
               title=${this.address}
               @click=${this.handleCopyAddress}
             >
               ${this.copied ? "copied" : this.formatAddress(this.address)}
-            </div>
+            </md-text-button>
 
-            <md-outlined-button @click=${() => location.reload()}>
+            <md-icon-button @click=${() => location.reload()}>
               <md-icon>↺</md-icon>
-            </md-outlined-button>
+            </md-icon-button>
 
-            <md-filled-tonal-button
-              type="button"
-              class="top-refresh"
+            <md-filled-icon-button
               @click=${this.handleRefresh}
               ?disabled=${this.isBusy || !this.hasAddress}
             >
-              ${this.isBusy ? "..." : "Refresh"}
-            </md-filled-tonal-button>
+              <md-icon>↺</md-icon>
+            </md-filled-icon-button>
 
             <md-outlined-button
               type="button"
-              class="open-mode-toggle"
               @click=${this.handleToggleOpenMode}
             >
-              ${this.openInPopup ? "move to sidePanel" : "move to popup"}
+              ${this.openInPopup ? "to sidePanel" : "to popup"}
             </md-outlined-button>
           </div>
 

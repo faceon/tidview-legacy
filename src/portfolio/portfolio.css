@@ -36,13 +36,14 @@ body {
   --bg-danger: #ffe6e6;
 
   /* button height */
-  --button-height: 24px;
+  --button-height: 28px;
   --md-elevated-button-container-height: var(--button-height);
   --md-filled-button-container-height: var(--button-height);
   --md-filled-tonal-button-container-height: var(--button-height);
   --md-outlined-button-container-height: var(--button-height);
   --md-text-button-container-height: var(--button-height);
   --md-filled-icon-button-container-height: var(--button-height);
+  --md-icon-button-container-height: var(--button-height);
 }
 
 :host *,
@@ -66,7 +67,6 @@ body {
 :host button,
 :host input,
 :host select {
-  font-family: inherit;
   font-size: inherit;
   color: inherit;
 }
@@ -129,11 +129,9 @@ body {
 }
 
 .address-chip {
-  font-size: 12px;
   color: #333;
   background: var(--bg-muted);
   border-radius: var(--radius-pill);
-  padding: var(--space-xs) var(--space-md);
   width: 70px;
   max-width: 100%;
   overflow: hidden;
@@ -155,7 +153,6 @@ body {
 
 .address-form input[type="text"] {
   width: 100%;
-  padding: var(--space-sm) var(--space-md);
   border: 1px solid #ccc;
   border-radius: var(--radius-md);
   font-size: 13px;
@@ -174,11 +171,9 @@ body {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  font-family: inherit;
   transition:
     background 0.2s ease,
     opacity 0.2s ease;
-  padding: var(--space-sm) var(--space-md);
 }
 
 .primary-button {
@@ -197,7 +192,6 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-compact) var(--space-md);
   border-radius: var(--radius-pill);
   background: var(--color-text);
   color: #fff;
@@ -207,11 +201,9 @@ body {
 }
 
 .open-mode-toggle {
-  --md-outlined-button-container-height: var(--button-height);
   text-transform: none;
   font-size: 11px;
   border-radius: var(--radius-pill);
-  padding: var(--space-compact) var(--space-md);
 }
 
 .primary-button[disabled],
