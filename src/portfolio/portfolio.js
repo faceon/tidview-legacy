@@ -10,6 +10,8 @@ import "@material/web/button/text-button.js";
 import "@material/web/button/outlined-button.js";
 import "@material/web/button/filled-button.js";
 import "@material/web/button/filled-tonal-button.js";
+import "@material/web/menu/menu.js";
+import "@material/web/menu/menu-item.js";
 
 class TidviewPortfolio extends LitElement {
   static styles = css`
@@ -75,18 +77,12 @@ class TidviewPortfolio extends LitElement {
         <!-- top row with title, address chip, and buttons -->
         <div class="top-controls">
           <div class="top-row">
-            <md-text-button
-              class="address-chip ${this.hasAddress ? "" : "display-none"}"
-              title=${this.address}
-              @click=${this.handleCopyAddress}
-            >
-              ${this.copied ? "copied" : this.formatAddress(this.address)}
-            </md-text-button>
-
-            <md-icon-button @click=${() => location.reload()}>
-              <md-icon>↺</md-icon>
-            </md-icon-button>
-
+            <img
+              style="width: 16px; height: 16px"
+              src="icons/icon16.png"
+              alt="Tidview Logo"
+            />
+            <h3>Tidview</h3>
             <md-filled-icon-button
               @click=${this.handleRefresh}
               ?disabled=${this.isBusy || !this.hasAddress}
@@ -94,12 +90,39 @@ class TidviewPortfolio extends LitElement {
               <md-icon>↺</md-icon>
             </md-filled-icon-button>
 
-            <md-outlined-button
-              type="button"
-              @click=${this.handleToggleOpenMode}
+            <md-filled-button
+              style="position: relative"
+              id="settings-anchor"
+              @click=${() => {
+                const menuEl = this.renderRoot.querySelector("#settings-menu");
+                menuEl.open = !menuEl.open;
+              }}
+              >settings</md-filled-button
             >
-              ${this.openInPopup ? "to sidePanel" : "to popup"}
-            </md-outlined-button>
+            <md-menu id="settings-menu" anchor="settings-anchor">
+              <md-menu-item>
+                <md-text-button
+                  class="address-chip ${this.hasAddress ? "" : "display-none"}"
+                  title=${this.address}
+                  @click=${this.handleCopyAddress}
+                >
+                  ${this.copied ? "copied" : this.formatAddress(this.address)}
+                </md-text-button>
+              </md-menu-item>
+              <md-menu-item>
+                <md-icon-button @click=${() => location.reload()}>
+                  <md-icon>↺</md-icon>
+                </md-icon-button>
+              </md-menu-item>
+              <md-menu-item>
+                <md-outlined-button
+                  type="button"
+                  @click=${this.handleToggleOpenMode}
+                >
+                  ${this.openInPopup ? "to sidePanel" : "to popup"}
+                </md-outlined-button>
+              </md-menu-item>
+            </md-menu>
           </div>
 
           <div class="address-form ${this.hasAddress ? "display-none" : ""}">
