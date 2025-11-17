@@ -87,18 +87,19 @@ class TidviewPortfolio extends LitElement {
               @click=${this.handleRefresh}
               ?disabled=${this.isBusy || !this.hasAddress}
             >
-              <md-icon>↺</md-icon>
+              <md-icon>refresh</md-icon>
             </md-filled-icon-button>
 
-            <md-filled-button
+            <md-icon-button
               style="position: relative"
               id="settings-anchor"
               @click=${() => {
                 const menuEl = this.renderRoot.querySelector("#settings-menu");
                 menuEl.open = !menuEl.open;
               }}
-              >settings</md-filled-button
             >
+              <md-icon>settings</md-icon>
+            </md-icon-button>
             <md-menu id="settings-menu" anchor="settings-anchor">
               <md-menu-item>
                 <md-text-button
