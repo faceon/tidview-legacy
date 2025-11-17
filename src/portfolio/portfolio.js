@@ -76,6 +76,7 @@ class TidviewPortfolio extends LitElement {
     return html`
       <!-- top area -->
       <div class="top-area">
+        <!-- controls -->
         <div class="top-row">
           <img
             style="width: 16px; height: 16px"
@@ -132,6 +133,7 @@ class TidviewPortfolio extends LitElement {
           </md-menu>
         </div>
 
+        <!-- address form -->
         <div class="address-form ${this.hasAddress ? "display-none" : ""}">
           <label for="address">Your 0x address</label>
           <input
@@ -162,28 +164,27 @@ class TidviewPortfolio extends LitElement {
           </div>
         </div>
 
-        <div class="value-card">
+        <!-- Total: latest positions value + cash -->
+        <div class="top-row">
           <div class="error ${!this.valuesError ? "display-none" : ""}">
             ${this.valuesError}
           </div>
 
-          <div class="${hasPortfolioValues ? "" : "display-none"}">
-            <!-- Total: latest positions value + cash -->
-            <div class="portfolio-summary">
-              <div class="summary-block">
-                <span>Total</span>
-                <span>${displayValues.total}</span>
-              </div>
+          <div class="portfolio-summary">
+            <div class="summary-block">
+              <span>Total</span>
+              <span>${displayValues.total}</span>
             </div>
-            <div class="portfolio-summary">
-              <div class="summary-block">
-                <span>Positions</span>
-                <span>${displayValues.positions}</span>
-              </div>
-              <div class="summary-block">
-                <span>Cash</span>
-                <span>${displayValues.cash}</span>
-              </div>
+          </div>
+
+          <div class="portfolio-summary">
+            <div class="summary-block">
+              <span>Positions</span>
+              <span>${displayValues.positions}</span>
+            </div>
+            <div class="summary-block">
+              <span>Cash</span>
+              <span>${displayValues.cash}</span>
             </div>
           </div>
         </div>
