@@ -74,97 +74,94 @@ class TidviewPortfolio extends LitElement {
     );
 
     return html`
-      <div class="scroll-area">
-        <!-- top row with title, address chip, and buttons -->
-        <div class="top-controls">
-          <div class="top-row">
-            <img
-              style="width: 16px; height: 16px"
-              src="icons/icon16.png"
-              alt="Tidview Logo"
-            />
+      <!-- top area -->
+      <div class="top-area">
+        <div class="top-row">
+          <img
+            style="width: 16px; height: 16px"
+            src="icons/icon16.png"
+            alt="Tidview Logo"
+          />
 
-            <h3>Tidview</h3>
+          <h3>Tidview</h3>
 
-            <md-icon-button @click=${() => location.reload()}>
-              <md-icon>restore_page</md-icon>
-            </md-icon-button>
+          <md-icon-button @click=${() => location.reload()}>
+            <md-icon>restore_page</md-icon>
+          </md-icon-button>
 
-            <md-filled-icon-button
+          <md-filled-icon-button
+            @click=${this.handleRefresh}
+            ?disabled=${this.isBusy || !this.hasAddress}
+          >
+            <md-icon>sync</md-icon>
+          </md-filled-icon-button>
+
+          <span class="refresh-timer">
+            ${typeof this.valuesUpdatedAt === "number"
+              ? this.getRefreshAgeLabel()
+              : ""}
+          </span>
+
+          <md-icon-button
+            style="position: relative"
+            id="settings-anchor"
+            @click=${() => {
+              const menuEl = this.renderRoot.querySelector("#settings-menu");
+              menuEl.open = !menuEl.open;
+            }}
+          >
+            <md-icon>settings</md-icon>
+          </md-icon-button>
+
+          <md-menu id="settings-menu" anchor="settings-anchor">
+            <md-menu-item>
+              <md-text-button
+                class="address-chip ${this.hasAddress ? "" : "display-none"}"
+                title=${this.address}
+                @click=${this.handleCopyAddress}
+              >
+                ${this.copied ? "copied" : this.formatAddress(this.address)}
+              </md-text-button>
+            </md-menu-item>
+
+            <md-menu-item>
+              <md-text-button @click=${this.handleToggleOpenMode}>
+                ${this.openInPopup ? "open in sidepanel" : "open in popup"}
+              </md-text-button>
+            </md-menu-item>
+          </md-menu>
+        </div>
+
+        <div class="address-form ${this.hasAddress ? "display-none" : ""}">
+          <label for="address">Your 0x address</label>
+          <input
+            id="address"
+            type="text"
+            placeholder="0x...40 hex chars"
+            .value=${this.address}
+            @input=${this.handleInput}
+            autocomplete="off"
+          />
+          <div class="row">
+            <button
+              type="button"
+              class="primary-button"
+              @click=${this.handleSave}
+              ?disabled=${this.isBusy}
+            >
+              ${this.isBusy ? "Working..." : "Save"}
+            </button>
+            <button
+              type="button"
+              class="secondary-button"
               @click=${this.handleRefresh}
-              ?disabled=${this.isBusy || !this.hasAddress}
+              ?disabled=${this.isBusy}
             >
-              <md-icon>sync</md-icon>
-            </md-filled-icon-button>
-
-            <span class="refresh-timer">
-              ${typeof this.valuesUpdatedAt === "number"
-                ? this.getRefreshAgeLabel()
-                : ""}
-            </span>
-
-            <md-icon-button
-              style="position: relative"
-              id="settings-anchor"
-              @click=${() => {
-                const menuEl = this.renderRoot.querySelector("#settings-menu");
-                menuEl.open = !menuEl.open;
-              }}
-            >
-              <md-icon>settings</md-icon>
-            </md-icon-button>
-
-            <md-menu id="settings-menu" anchor="settings-anchor">
-              <md-menu-item>
-                <md-text-button
-                  class="address-chip ${this.hasAddress ? "" : "display-none"}"
-                  title=${this.address}
-                  @click=${this.handleCopyAddress}
-                >
-                  ${this.copied ? "copied" : this.formatAddress(this.address)}
-                </md-text-button>
-              </md-menu-item>
-
-              <md-menu-item>
-                <md-text-button @click=${this.handleToggleOpenMode}>
-                  ${this.openInPopup ? "open in sidepanel" : "open in popup"}
-                </md-text-button>
-              </md-menu-item>
-            </md-menu>
-          </div>
-
-          <div class="address-form ${this.hasAddress ? "display-none" : ""}">
-            <label for="address">Your 0x address</label>
-            <input
-              id="address"
-              type="text"
-              placeholder="0x...40 hex chars"
-              .value=${this.address}
-              @input=${this.handleInput}
-              autocomplete="off"
-            />
-            <div class="row">
-              <button
-                type="button"
-                class="primary-button"
-                @click=${this.handleSave}
-                ?disabled=${this.isBusy}
-              >
-                ${this.isBusy ? "Working..." : "Save"}
-              </button>
-              <button
-                type="button"
-                class="secondary-button"
-                @click=${this.handleRefresh}
-                ?disabled=${this.isBusy}
-              >
-                Refresh
-              </button>
-            </div>
+              Refresh
+            </button>
           </div>
         </div>
 
-        <!-- value card -->
         <div class="value-card">
           <div class="error ${!this.valuesError ? "display-none" : ""}">
             ${this.valuesError}
@@ -190,7 +187,9 @@ class TidviewPortfolio extends LitElement {
             </div>
           </div>
         </div>
+      </div>
 
+      <div class="scroll-area">
         <!-- positions -->
         <div class="positions">
           <positions-section
