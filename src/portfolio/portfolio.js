@@ -2,7 +2,7 @@ import { LitElement, html, css, unsafeCSS } from "lit";
 import { parseNumber, formatCurrency } from "../common/format.js";
 import cfg from "../common/config.js";
 import portfolioCss from "./portfolio.css";
-import "./positions-section.js";
+import "./positions-list.js";
 import "@material/web/iconButton/filled-icon-button.js";
 import "@material/web/iconButton/icon-button.js";
 import "@material/web/icon/icon.js";
@@ -192,11 +192,11 @@ class TidviewPortfolio extends LitElement {
       <div class="scroll-area">
         <!-- positions -->
         <div class="positions">
-          <positions-section
+          <positions-list
             .positions=${/** @type {any} */ (this.positions)}
             .loading=${this.positionsLoading}
             .openMarket=${this.openMarket}
-          ></positions-section>
+          ></positions-list>
 
           ${this.positionsError
             ? html`<div class="meta error">${this.positionsError}</div>`

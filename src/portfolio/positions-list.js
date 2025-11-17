@@ -186,4 +186,4 @@ class PositionsSection extends LitElement {
   }
 }
 
-customElements.define("positions-section", PositionsSection);
+customElements.define("positions-list", PositionsSection);
