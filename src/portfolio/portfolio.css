@@ -256,6 +256,7 @@ md-icon {
 }
 
 .value-card {
+  flex-direction: column;
   padding: var(--space-md);
   border: var(--border-subtle);
   background: var(--bg-subtle);
@@ -317,7 +318,7 @@ md-icon {
 
 .portfolio-summary {
   display: flex;
-  justify-content: space-between;
+  flex-direction: row;
   gap: var(--space-md);
   border: var(--border-subtle);
   border-radius: var(--radius-md);

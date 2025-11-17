@@ -172,16 +172,18 @@ class TidviewPortfolio extends LitElement {
 
           <div class="${hasPortfolioValues ? "" : "display-none"}">
             <!-- Total: latest positions value + cash -->
-            <div class="value-rows">
-              <div class="value-row value-total">
+            <div class="portfolio-summary">
+              <div class="summary-block">
                 <span>Total</span>
                 <span>${displayValues.total}</span>
               </div>
-              <div class="value-row">
+            </div>
+            <div class="portfolio-summary">
+              <div class="summary-block">
                 <span>Positions</span>
                 <span>${displayValues.positions}</span>
               </div>
-              <div class="value-row">
+              <div class="summary-block">
                 <span>Cash</span>
                 <span>${displayValues.cash}</span>
               </div>
