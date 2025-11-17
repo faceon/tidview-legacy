@@ -132,6 +132,13 @@ md-icon {
   flex-wrap: wrap;
 }
 
+.refresh-timer {
+  width: 50px;
+  text-align: right;
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
 .address-chip {
   color: #333;
   background: var(--bg-muted);

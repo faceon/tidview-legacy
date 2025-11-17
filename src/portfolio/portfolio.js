@@ -53,6 +53,7 @@ class TidviewPortfolio extends LitElement {
     this.cashValue = null;
     this.openInPopup = false;
     this.lastActiveTabId = null;
+    this._refreshTicker = null;
   }
 
   render() {
@@ -85,6 +86,10 @@ class TidviewPortfolio extends LitElement {
 
             <h3>Tidview</h3>
 
+            <md-icon-button @click=${() => location.reload()}>
+              <md-icon>restore_page</md-icon>
+            </md-icon-button>
+
             <md-filled-icon-button
               @click=${this.handleRefresh}
               ?disabled=${this.isBusy || !this.hasAddress}
@@ -92,9 +97,11 @@ class TidviewPortfolio extends LitElement {
               <md-icon>sync</md-icon>
             </md-filled-icon-button>
 
-            <md-icon-button @click=${() => location.reload()}>
-              <md-icon>refresh</md-icon>
-            </md-icon-button>
+            <span class="refresh-timer">
+              ${typeof this.valuesUpdatedAt === "number"
+                ? this.getRefreshAgeLabel()
+                : ""}
+            </span>
 
             <md-icon-button
               style="position: relative"
@@ -213,6 +220,7 @@ class TidviewPortfolio extends LitElement {
       chrome.storage.onChanged.addListener(this.handleStorageChange);
     }
     this.initFromStorage();
+    this.startRefreshTicker();
   }
 
   disconnectedCallback() {
@@ -220,6 +228,42 @@ class TidviewPortfolio extends LitElement {
       chrome.storage.onChanged.removeListener(this.handleStorageChange);
     }
     super.disconnectedCallback();
+    this.stopRefreshTicker();
+  }
+
+  startRefreshTicker() {
+    if (this._refreshTicker != null || typeof window === "undefined") {
+      return;
+    }
+    this._refreshTicker = window.setInterval(() => {
+      if (this.valuesUpdatedAt) {
+        this.requestUpdate();
+      }
+    }, 1000);
+  }
+
+  stopRefreshTicker() {
+    if (this._refreshTicker != null) {
+      window.clearInterval(this._refreshTicker);
+      this._refreshTicker = null;
+    }
+  }
+
+  getRefreshAgeLabel() {
+    if (typeof this.valuesUpdatedAt !== "number") {
+      return "";
+    }
+    const age = Math.max(Date.now() - this.valuesUpdatedAt, 0);
+    if (age < 60 * 1000) {
+      const seconds = Math.max(Math.floor(age / 1000), 0);
+      return `${seconds}s`;
+    }
+    if (age < 60 * 60 * 1000) {
+      const minutes = Math.floor(age / (60 * 1000));
+      return `${minutes}m`;
+    }
+    const hours = Math.floor(age / (60 * 60 * 1000));
+    return `${hours}h`;
   }
 
   async initFromStorage() {
