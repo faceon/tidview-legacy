@@ -82,13 +82,19 @@ class TidviewPortfolio extends LitElement {
               src="icons/icon16.png"
               alt="Tidview Logo"
             />
+
             <h3>Tidview</h3>
+
             <md-filled-icon-button
               @click=${this.handleRefresh}
               ?disabled=${this.isBusy || !this.hasAddress}
             >
-              <md-icon>refresh</md-icon>
+              <md-icon>sync</md-icon>
             </md-filled-icon-button>
+
+            <md-icon-button @click=${() => location.reload()}>
+              <md-icon>refresh</md-icon>
+            </md-icon-button>
 
             <md-icon-button
               style="position: relative"
@@ -100,6 +106,7 @@ class TidviewPortfolio extends LitElement {
             >
               <md-icon>settings</md-icon>
             </md-icon-button>
+
             <md-menu id="settings-menu" anchor="settings-anchor">
               <md-menu-item>
                 <md-text-button
@@ -110,18 +117,11 @@ class TidviewPortfolio extends LitElement {
                   ${this.copied ? "copied" : this.formatAddress(this.address)}
                 </md-text-button>
               </md-menu-item>
+
               <md-menu-item>
-                <md-icon-button @click=${() => location.reload()}>
-                  <md-icon>↺</md-icon>
-                </md-icon-button>
-              </md-menu-item>
-              <md-menu-item>
-                <md-outlined-button
-                  type="button"
-                  @click=${this.handleToggleOpenMode}
-                >
-                  ${this.openInPopup ? "to sidePanel" : "to popup"}
-                </md-outlined-button>
+                <md-text-button @click=${this.handleToggleOpenMode}>
+                  ${this.openInPopup ? "open in sidepanel" : "open in popup"}
+                </md-text-button>
               </md-menu-item>
             </md-menu>
           </div>
@@ -438,7 +438,9 @@ class TidviewPortfolio extends LitElement {
     }
   }
 
-  async handleToggleOpenMode() {
+  async handleToggleOpenMode(e) {
+    e.stopPropagation();
+    e.preventDefault();
     if (!chrome?.storage?.sync) {
       return;
     }
