@@ -46,39 +46,6 @@ body {
   --md-icon-button-container-height: var(--button-height);
 }
 
-:host *,
-:host *::before,
-:host *::after {
-  box-sizing: inherit;
-}
-
-:host h1,
-:host p,
-:host ul,
-:host li {
-  margin: 0;
-}
-
-:host ul {
-  padding: 0;
-  list-style: none;
-}
-
-:host button,
-:host input,
-:host select {
-  font-size: inherit;
-  color: inherit;
-}
-
-:host button {
-  cursor: pointer;
-}
-
-:host button[disabled] {
-  cursor: default;
-}
-
 md-icon {
   font-family: "Material Symbols Outlined", "Material Icons";
 }
@@ -113,10 +80,7 @@ md-icon {
 }
 
 .top-controls {
-  position: sticky;
   top: 0;
-  z-index: 10;
-  background: var(--bg-surface);
   border-bottom: var(--border-strong);
   display: flex;
   flex-direction: column;
