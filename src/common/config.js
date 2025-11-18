@@ -1,5 +1,5 @@
 const cfg = {
-  POLL_MINUTES: 5,
+  POLL_MINUTES: 0.1833,
   IS_DEVELOPMENT: process.env.NODE_ENV === "development",
   DEFAULT_OPEN_IN_POPUP: false,
   ADDRESS_REGEX: /^0x[a-fA-F0-9]{40}$/,

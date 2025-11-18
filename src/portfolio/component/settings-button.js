@@ -1,6 +1,5 @@
-import { LitElement, html, css, unsafeCSS } from "lit";
+import { LitElement, html, css } from "lit";
 import cfg from "../../common/config.js";
-import sharedCss from "./../portfolio.css";
 import "@material/web/iconButton/filled-icon-button.js";
 import "@material/web/iconButton/icon-button.js";
 import "@material/web/icon/icon.js";
@@ -10,12 +9,7 @@ import "@material/web/menu/menu-item.js";
 import { formatAddress } from "../../common/format.js";
 
 class SettingsButton extends LitElement {
-  static styles = css`
-    /* Position anchor for the settings menu (applies in settings-button shadow since it's using the same CSS) */
-    #settings-anchor {
-      position: relative;
-    }
-  `;
+  static styles = css``;
 
   static properties = {
     address: { type: String },
@@ -52,6 +46,7 @@ class SettingsButton extends LitElement {
 
   render() {
     return html` <md-icon-button
+        style="position: relative;"
         id="settings-anchor"
         @click=${() => {
           const menuEl = this.renderRoot.querySelector("#settings-menu");
