@@ -1,7 +1,7 @@
 import { LitElement, html, css, unsafeCSS } from "lit";
-import portfolioCss from "./portfolio.css";
 import { parseNumber, formatCurrency } from "../common/format.js";
 import cfg from "../common/config.js";
+import portfolioCss from "./portfolio.css";
 import "@material/web/iconButton/filled-icon-button.js";
 import "@material/web/iconButton/icon-button.js";
 import "@material/web/icon/icon.js";
