@@ -2,16 +2,13 @@ import { LitElement, html, css, unsafeCSS } from "lit";
 import { parseNumber, formatCurrency } from "../common/format.js";
 import cfg from "../common/config.js";
 import portfolioCss from "./portfolio.css";
-import "./positions-list.js";
 import "@material/web/iconButton/filled-icon-button.js";
 import "@material/web/iconButton/icon-button.js";
 import "@material/web/icon/icon.js";
-import "@material/web/button/text-button.js";
-import "@material/web/button/outlined-button.js";
-import "@material/web/button/filled-button.js";
-import "@material/web/button/filled-tonal-button.js";
 import "@material/web/menu/menu.js";
 import "@material/web/menu/menu-item.js";
+import "./component/positions-list.js";
+import "./component/settings-button.js";
 
 class TidviewPortfolio extends LitElement {
   static styles = css`
@@ -74,67 +71,45 @@ class TidviewPortfolio extends LitElement {
     );
 
     return html`
-      <!-- top area -->
-      <div class="top-area">
-        <!-- controls -->
-        <div class="top-row">
-          <img
-            style="width: 16px; height: 16px"
-            src="icons/icon16.png"
-            alt="Tidview Logo"
-          />
+      <header>
+        <section style="display: flex; flex-direction: row; gap: 12px;">
+          <figure class="top-row">
+            <img
+              style="width: 16px; height: 16px"
+              src="icons/icon16.png"
+              alt="Tidview Logo"
+            />
+          </figure>
 
           <h3>Tidview</h3>
 
-          <md-icon-button @click=${() => location.reload()}>
-            <md-icon>restore_page</md-icon>
-          </md-icon-button>
+          <nav>
+            <md-icon-button @click=${() => location.reload()}>
+              <md-icon>restore_page</md-icon>
+            </md-icon-button>
 
-          <md-filled-icon-button
-            @click=${this.handleRefresh}
-            ?disabled=${this.isBusy || !this.hasAddress}
-          >
-            <md-icon>sync</md-icon>
-          </md-filled-icon-button>
+            <md-filled-icon-button
+              @click=${this.handleRefresh}
+              ?disabled=${this.isBusy || !this.hasAddress}
+            >
+              <md-icon>sync</md-icon>
+            </md-filled-icon-button>
 
-          <span class="refresh-timer">
-            ${typeof this.valuesUpdatedAt === "number"
-              ? this.getRefreshAgeLabel()
-              : ""}
-          </span>
+            <span class="refresh-timer">
+              ${typeof this.valuesUpdatedAt === "number"
+                ? this.getRefreshAgeLabel()
+                : ""}
+            </span>
 
-          <md-icon-button
-            style="position: relative"
-            id="settings-anchor"
-            @click=${() => {
-              const menuEl = this.renderRoot.querySelector("#settings-menu");
-              menuEl.open = !menuEl.open;
-            }}
-          >
-            <md-icon>settings</md-icon>
-          </md-icon-button>
-
-          <md-menu id="settings-menu" anchor="settings-anchor">
-            <md-menu-item>
-              <md-text-button
-                class="address-chip ${this.hasAddress ? "" : "display-none"}"
-                title=${this.address}
-                @click=${this.handleCopyAddress}
-              >
-                ${this.copied ? "copied" : this.formatAddress(this.address)}
-              </md-text-button>
-            </md-menu-item>
-
-            <md-menu-item>
-              <md-text-button @click=${this.handleToggleOpenMode}>
-                ${this.openInPopup ? "open in sidepanel" : "open in popup"}
-              </md-text-button>
-            </md-menu-item>
-          </md-menu>
-        </div>
+            <settings-button
+              .address=${this.address}
+              .openInPopup=${this.openInPopup}
+            ></settings-button>
+          </nav>
+        </section>
 
         <!-- address form -->
-        <div class="address-form ${this.hasAddress ? "display-none" : ""}">
+        <section class="address-form ${this.hasAddress ? "display-none" : ""}">
           <label for="address">Your 0x address</label>
           <input
             id="address"
@@ -162,10 +137,10 @@ class TidviewPortfolio extends LitElement {
               Refresh
             </button>
           </div>
-        </div>
+        </section>
 
         <!-- Total: latest positions value + cash -->
-        <div class="top-row">
+        <section class="top-row">
           <div class="error ${!this.valuesError ? "display-none" : ""}">
             ${this.valuesError}
           </div>
@@ -187,10 +162,10 @@ class TidviewPortfolio extends LitElement {
               <span>${displayValues.cash}</span>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
+      </header>
 
-      <div class="scroll-area">
+      <main class="scroll-area">
         <!-- positions -->
         <div class="positions">
           <positions-list
@@ -198,21 +173,23 @@ class TidviewPortfolio extends LitElement {
             .loading=${this.positionsLoading}
             .openMarket=${this.openMarket}
           ></positions-list>
-
-          ${this.positionsError
-            ? html`<div class="meta error">${this.positionsError}</div>`
-            : ""}
-          ${this.statusMessage
-            ? html`<div class="meta">${this.statusMessage}</div>`
-            : ""}
-          ${this.positionsUpdatedAt
-            ? html`<div class="meta">
-                Positions refreshed:
-                ${new Date(this.positionsUpdatedAt).toLocaleString()}
-              </div>`
-            : ""}
         </div>
-      </div>
+      </main>
+
+      <footer>
+        ${this.positionsError
+          ? html`<div class="meta error">${this.positionsError}</div>`
+          : ""}
+        ${this.statusMessage
+          ? html`<div class="meta">${this.statusMessage}</div>`
+          : ""}
+        ${this.positionsUpdatedAt
+          ? html`<div class="meta">
+              Positions refreshed:
+              ${new Date(this.positionsUpdatedAt).toLocaleString()}
+            </div>`
+          : ""}
+      </footer>
     `;
   }
 
@@ -484,98 +461,6 @@ class TidviewPortfolio extends LitElement {
     }
   }
 
-  async handleToggleOpenMode(e) {
-    e.stopPropagation();
-    e.preventDefault();
-    if (!chrome?.storage?.sync) {
-      return;
-    }
-
-    const nextValue = !this.openInPopup;
-    this.openInPopup = nextValue;
-    try {
-      await chrome.storage.sync.set({ openInPopup: nextValue });
-      await chrome.runtime.sendMessage({
-        type: "setOpenMode",
-        openInPopup: nextValue,
-      });
-      if (nextValue) {
-        await this.openPopupView();
-      } else {
-        await this.openSidePanelView();
-      }
-    } catch (error) {
-      console.error("Failed to toggle open mode", error);
-    }
-  }
-
-  async openSidePanelView() {
-    if (!chrome?.sidePanel || !chrome?.tabs?.query) {
-      return;
-    }
-
-    try {
-      const tabs = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      const tabId = tabs?.[0]?.id;
-      if (typeof tabId === "number") {
-        this.lastActiveTabId = tabId;
-        await chrome.sidePanel.open({ tabId });
-      } else {
-        await chrome.sidePanel.open({});
-      }
-    } catch (error) {
-      console.error("Failed to open side panel", error);
-    }
-
-    if (typeof window !== "undefined" && window.close) {
-      window.close();
-    }
-  }
-
-  async openPopupView() {
-    await this.closeSidePanelIfNeeded();
-
-    if (chrome?.action?.openPopup) {
-      try {
-        await chrome.action.openPopup();
-      } catch (error) {
-        console.error("Failed to open popup", error);
-      }
-    }
-  }
-
-  async closeSidePanelIfNeeded() {
-    if (!chrome?.sidePanel) {
-      return;
-    }
-
-    let tabIdCandidate = this.lastActiveTabId;
-    if (typeof tabIdCandidate !== "number" && chrome?.tabs?.query) {
-      try {
-        const tabs = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        tabIdCandidate = tabs?.[0]?.id;
-      } catch (error) {
-        console.error("Failed to query tabs for side panel close", error);
-      }
-    }
-
-    if (typeof tabIdCandidate !== "number") {
-      return;
-    }
-
-    try {
-      await chrome.sidePanel.close({ tabId: tabIdCandidate });
-    } catch (error) {
-      console.error("Failed to close side panel", error);
-    }
-  }
-
   async requestRefresh({ recordTimestamp = false } = {}) {
     try {
       const res = await chrome.runtime.sendMessage({ type: "refresh" });
@@ -691,32 +576,6 @@ class TidviewPortfolio extends LitElement {
       window.open(url, "_blank", "noopener,noreferrer");
     }
   };
-
-  handleCopyAddress() {
-    if (!this.hasAddress) return;
-    navigator.clipboard
-      .writeText(this.address)
-      .then(() => {
-        this.copied = true;
-        setTimeout(() => {
-          this.copied = false;
-        }, 2000); // 2초 후 원래 표시로 복귀
-      })
-      .catch((error) => {
-        console.error("Failed to copy address", error);
-      });
-  }
-
-  formatAddress(address) {
-    if (typeof address !== "string") {
-      return "";
-    }
-    const trimmed = address.trim();
-    if (trimmed.length <= 12) {
-      return trimmed;
-    }
-    return `${trimmed.slice(0, 6)}...${trimmed.slice(-4)}`;
-  }
 }
 
 customElements.define("tidview-portfolio", TidviewPortfolio);

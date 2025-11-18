@@ -82,3 +82,14 @@ export const ensurePositiveInteger = (value, fallback = 1) => {
   const parsed = parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
+
+export const formatAddress = (address) => {
+  if (typeof address !== "string") {
+    return "";
+  }
+  const trimmed = address.trim();
+  if (trimmed.length <= 12) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, 6)}...${trimmed.slice(-4)}`;
+};

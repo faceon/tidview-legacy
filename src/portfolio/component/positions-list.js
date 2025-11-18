@@ -8,10 +8,10 @@ import {
   formatDate,
   trendClass,
   parseNumber,
-} from "../common/format.js";
-import sharedCss from "./portfolio.css";
+} from "../../common/format.js";
+import sharedCss from "./../portfolio.css";
 
-class PositionsSection extends LitElement {
+class PositionsList extends LitElement {
   static properties = {
     positions: { type: Array },
     loading: { type: Boolean },
@@ -186,4 +186,4 @@ class PositionsSection extends LitElement {
   }
 }
 
-customElements.define("positions-list", PositionsSection);
+customElements.define("positions-list", PositionsList);
