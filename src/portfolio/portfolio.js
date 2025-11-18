@@ -1,7 +1,7 @@
 import { LitElement, html, css, unsafeCSS } from "lit";
+import portfolioCss from "./portfolio.css";
 import { parseNumber, formatCurrency } from "../common/format.js";
 import cfg from "../common/config.js";
-import portfolioCss from "./portfolio.css";
 import "@material/web/iconButton/filled-icon-button.js";
 import "@material/web/iconButton/icon-button.js";
 import "@material/web/icon/icon.js";
@@ -13,6 +13,46 @@ import "./component/settings-button.js";
 class TidviewPortfolio extends LitElement {
   static styles = css`
     ${unsafeCSS(portfolioCss)}
+
+    /* Ensure nav contents layout in a single row and don't wrap */
+    header nav {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      width: 100%;
+      flex-wrap: nowrap; /* force one-line layout */
+    }
+
+    /* Allow children to shrink properly to avoid overflow */
+    header nav > * {
+      min-width: 0;
+    }
+
+    /* Keep icon buttons from stretching */
+    header nav > md-icon-button,
+    header nav > md-filled-icon-button {
+      flex: 0 0 auto;
+    }
+
+    /* Ensure the refresh-timer remains compact */
+    header nav > .refresh-timer {
+      width: 50px;
+      text-align: right;
+      font-size: 11px;
+      color: var(--color-muted);
+    }
+
+    /* Push the settings-button (custom element) to the right side of the nav */
+    header nav > settings-button {
+      margin-left: auto;
+    }
+
+    /* Small top-left logo in the header */
+    header figure img {
+      width: 16px;
+      height: 16px;
+      display: inline-block;
+    }
   `;
 
   static properties = {
@@ -72,13 +112,10 @@ class TidviewPortfolio extends LitElement {
 
     return html`
       <header>
-        <section style="display: flex; flex-direction: row; gap: 12px;">
-          <figure class="top-row">
-            <img
-              style="width: 16px; height: 16px"
-              src="icons/icon16.png"
-              alt="Tidview Logo"
-            />
+        <!-- top most row for logo and controls -->
+        <section>
+          <figure>
+            <img src="icons/icon16.png" alt="Tidview Logo" />
           </figure>
 
           <h3>Tidview</h3>
@@ -140,7 +177,7 @@ class TidviewPortfolio extends LitElement {
         </section>
 
         <!-- Total: latest positions value + cash -->
-        <section class="top-row">
+        <section>
           <div class="error ${!this.valuesError ? "display-none" : ""}">
             ${this.valuesError}
           </div>
@@ -165,8 +202,8 @@ class TidviewPortfolio extends LitElement {
         </section>
       </header>
 
-      <main class="scroll-area">
-        <!-- positions -->
+      <!-- positions -->
+      <main>
         <div class="positions">
           <positions-list
             .positions=${/** @type {any} */ (this.positions)}
@@ -176,6 +213,7 @@ class TidviewPortfolio extends LitElement {
         </div>
       </main>
 
+      <!-- updated time -->
       <footer>
         ${this.positionsError
           ? html`<div class="meta error">${this.positionsError}</div>`

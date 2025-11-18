@@ -11,7 +11,10 @@ import { formatAddress } from "../../common/format.js";
 
 class SettingsButton extends LitElement {
   static styles = css`
-    ${unsafeCSS(sharedCss)}
+    /* Position anchor for the settings menu (applies in settings-button shadow since it's using the same CSS) */
+    #settings-anchor {
+      position: relative;
+    }
   `;
 
   static properties = {
@@ -49,7 +52,6 @@ class SettingsButton extends LitElement {
 
   render() {
     return html` <md-icon-button
-        style="position: relative"
         id="settings-anchor"
         @click=${() => {
           const menuEl = this.renderRoot.querySelector("#settings-menu");

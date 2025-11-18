@@ -91,14 +91,6 @@ md-icon {
   gap: var(--space-md);
 }
 
-.scroll-area {
-  width: 360px;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-surface);
-  overflow-y: auto;
-}
-
 .refresh-timer {
   width: 50px;
   text-align: right;
