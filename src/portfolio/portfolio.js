@@ -14,28 +14,58 @@ class TidviewPortfolio extends LitElement {
   static styles = css`
     ${unsafeCSS(portfolioCss)}
 
-    /* Ensure nav contents layout in a single row and don't wrap */
-    header nav {
+    /* Lock the component to the fixed width used by sidepanel/popup and disallow horizontal scroll */
+    :host {
+      width: 360px; /* exact width to display */
+      min-width: 360px;
+      max-width: 360px;
+      box-sizing: border-box; /* ensure padding doesn't overflow */
+      overflow-x: hidden; /* prevent side scroll */
+      overflow-y: auto; /* allow vertical scroll if needed */
+    }
+
+    /* Use full component width for header/main/footer and rely on host box-sizing */
+    header,
+    main,
+    footer {
+      width: 100%;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0 8px;
+    }
+
+    /* Ensure the header top row (logo + title + controls) layout in a single row and don't wrap */
+    header > section {
       display: flex;
       align-items: center;
       gap: var(--space-md);
-      width: 100%;
       flex-wrap: nowrap; /* force one-line layout */
     }
 
-    /* Allow children to shrink properly to avoid overflow */
-    header nav > * {
+    /* Layout nav itself as a single row and allow it to shrink if needed */
+    header > section nav {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      flex: 1 1 auto; /* allow the nav to grow or shrink as needed */
+      min-width: 0; /* allow children to shrink properly */
+      flex-wrap: nowrap; /* keep icons, timer and settings on one line */
+    }
+
+    /* Allow children of nav (and section) to shrink properly to avoid overflow */
+    header > section > *,
+    header > section nav > * {
       min-width: 0;
     }
 
     /* Keep icon buttons from stretching */
-    header nav > md-icon-button,
-    header nav > md-filled-icon-button {
+    header > section nav > md-icon-button,
+    header > section nav > md-filled-icon-button {
       flex: 0 0 auto;
     }
 
     /* Ensure the refresh-timer remains compact */
-    header nav > .refresh-timer {
+    header > section nav > .refresh-timer {
       width: 50px;
       text-align: right;
       font-size: 11px;
@@ -43,15 +73,26 @@ class TidviewPortfolio extends LitElement {
     }
 
     /* Push the settings-button (custom element) to the right side of the nav */
-    header nav > settings-button {
+    header > section nav > settings-button {
       margin-left: auto;
     }
 
     /* Small top-left logo in the header */
-    header figure img {
+    header > section figure img {
       width: 16px;
       height: 16px;
       display: inline-block;
+    }
+
+    /* Make sure the title doesn't wrap and can truncate instead */
+    header > section h3 {
+      margin: 0;
+      font-size: 14px;
+      flex: 0 1 auto;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   `;
 
