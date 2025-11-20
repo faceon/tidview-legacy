@@ -11,33 +11,37 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.es2021,
-        chrome: "readonly"
+        chrome: "readonly",
       },
       parserOptions: {
         ecmaVersion: 2022,
-        sourceType: "module"
-      }
+        sourceType: "module",
+      },
     },
     plugins: {
       lit,
-      wc
+      wc,
     },
     rules: {
       ...lit.configs.recommended.rules,
       ...wc.configs.recommended.rules,
       "no-unused-vars": "warn",
-      "no-undef": "error"
-    }
+      "no-undef": "error",
+    },
   },
   {
-    files: ["webpack.config.js", "src/common/config.js", "src/common/lit-dev-warn-suppressor.js"],
+    files: [
+      "webpack.config.js",
+      "src/common/config.js",
+      "src/common/lit-dev-warn-suppressor.js",
+    ],
     languageOptions: {
       globals: {
-        ...globals.node
-      }
-    }
+        ...globals.node,
+      },
+    },
   },
   {
-    ignores: ["dist/", "node_modules/"]
-  }
+    ignores: ["dist/", "node_modules/"],
+  },
 ];

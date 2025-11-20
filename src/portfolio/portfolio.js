@@ -147,9 +147,6 @@ class TidviewPortfolio extends LitElement {
       positions: formatCurrency(positionsValue),
       cash: formatCurrency(cashValue),
     };
-    const hasPortfolioValues = Object.values(displayValues).some(
-      (value) => value !== "—",
-    );
 
     return html`
       <header>
