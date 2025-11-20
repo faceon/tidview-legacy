@@ -34,34 +34,6 @@ class TidviewPortfolio extends LitElement {
         padding: var(--space-md);
       }
 
-      /* Header Row (Logo + Nav) */
-      header > section {
-        display: flex;
-        align-items: center;
-        gap: var(--space-md);
-        flex-wrap: nowrap;
-      }
-
-      header h3 {
-        margin: 0;
-        font-size: 14px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      nav {
-        display: flex;
-        align-items: center;
-        gap: var(--space-md);
-        flex: 1;
-        min-width: 0;
-      }
-
-      nav > settings-button {
-        margin-left: auto;
-      }
-
       .refresh-timer {
         width: 50px;
         text-align: right;
@@ -69,53 +41,6 @@ class TidviewPortfolio extends LitElement {
         color: var(--color-muted);
       }
 
-      /* Address Form */
-      .address-form {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-sm);
-      }
-
-      .address-form input {
-        width: 100%;
-        border: 1px solid #ccc;
-        border-radius: var(--radius-md);
-        font-size: 13px;
-        padding: var(--space-xs);
-        box-sizing: border-box;
-      }
-
-      .row {
-        display: flex;
-        gap: var(--space-sm);
-      }
-
-      button {
-        flex: 1;
-        border: none;
-        border-radius: var(--radius-md);
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        padding: var(--space-sm);
-        transition: opacity 0.2s;
-      }
-
-      button:disabled {
-        opacity: 0.5;
-        cursor: default;
-      }
-
-      .primary-button {
-        background: var(--color-text);
-        color: #fff;
-      }
-      .secondary-button {
-        background: #e9e9e9;
-        color: var(--color-text);
-      }
-
-      /* Footer / Meta */
       footer {
         padding: var(--space-md);
         display: flex;
@@ -180,40 +105,39 @@ class TidviewPortfolio extends LitElement {
     return html`
       <header>
         <!-- top most row for logo and controls -->
-        <section>
+
+        <nav class="row-container">
           <figure>
             <img src="icons/icon16.png" alt="Tidview Logo" />
           </figure>
 
           <h3>Tidview</h3>
 
-          <nav>
-            <md-icon-button @click=${() => location.reload()}>
-              <md-icon>restore_page</md-icon>
-            </md-icon-button>
+          <md-icon-button @click=${() => location.reload()}>
+            <md-icon>restore_page</md-icon>
+          </md-icon-button>
 
-            <md-filled-icon-button
-              @click=${this.handleRefresh}
-              ?disabled=${this.isBusy || !this.hasAddress}
-            >
-              <md-icon>sync</md-icon>
-            </md-filled-icon-button>
+          <md-filled-icon-button
+            @click=${this.handleRefresh}
+            ?disabled=${this.isBusy || !this.hasAddress}
+          >
+            <md-icon>sync</md-icon>
+          </md-filled-icon-button>
 
-            <span class="refresh-timer">
-              ${typeof this.valuesUpdatedAt === "number"
-                ? this.getRefreshAgeLabel()
-                : ""}
-            </span>
+          <span class="refresh-timer">
+            ${typeof this.valuesUpdatedAt === "number"
+              ? this.getRefreshAgeLabel()
+              : ""}
+          </span>
 
-            <settings-button
-              .address=${this.address}
-              .openInPopup=${this.openInPopup}
-            ></settings-button>
-          </nav>
-        </section>
+          <settings-button
+            .address=${this.address}
+            .openInPopup=${this.openInPopup}
+          ></settings-button>
+        </nav>
 
         <!-- address form -->
-        <section class="address-form ${this.hasAddress ? "display-none" : ""}">
+        <div class="row-container ${this.hasAddress ? "display-none" : ""}">
           <label for="address">Your 0x address</label>
           <input
             id="address"
@@ -223,28 +147,17 @@ class TidviewPortfolio extends LitElement {
             @input=${this.handleInput}
             autocomplete="off"
           />
-          <div class="row">
-            <button
-              type="button"
-              class="primary-button"
-              @click=${this.handleSave}
-              ?disabled=${this.isBusy}
-            >
-              ${this.isBusy ? "Working..." : "Save"}
-            </button>
-            <button
-              type="button"
-              class="secondary-button"
-              @click=${this.handleRefresh}
-              ?disabled=${this.isBusy}
-            >
-              Refresh
-            </button>
-          </div>
-        </section>
+
+          <button @click=${this.handleSave} ?disabled=${this.isBusy}>
+            Save
+          </button>
+          <button @click=${this.handleRefresh} ?disabled=${this.isBusy}>
+            Refresh
+          </button>
+        </div>
 
         <!-- Total: latest positions value + cash -->
-        <section>
+        <div class="row-container">
           <div class="error ${!this.valuesError ? "display-none" : ""}">
             ${this.valuesError}
           </div>
@@ -266,18 +179,16 @@ class TidviewPortfolio extends LitElement {
               <span>${displayValues.cash}</span>
             </div>
           </div>
-        </section>
+        </div>
       </header>
 
       <!-- positions -->
       <main>
-        <div class="positions">
-          <positions-list
-            .positions=${/** @type {any} */ (this.positions)}
-            .loading=${this.positionsLoading}
-            .openMarket=${this.openMarket}
-          ></positions-list>
-        </div>
+        <positions-list
+          .positions=${/** @type {any} */ (this.positions)}
+          .loading=${this.positionsLoading}
+          .openMarket=${this.openMarket}
+        ></positions-list>
       </main>
 
       <!-- updated time -->

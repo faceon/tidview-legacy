@@ -1,4 +1,6 @@
 import { LitElement, html, css } from "lit";
+import { formatAddress } from "../../common/format.js";
+import { sharedStyles } from "../sharedStyles";
 import cfg from "../../common/config.js";
 import "@material/web/iconButton/filled-icon-button.js";
 import "@material/web/iconButton/icon-button.js";
@@ -6,10 +8,9 @@ import "@material/web/icon/icon.js";
 import "@material/web/button/filled-tonal-button.js";
 import "@material/web/menu/menu.js";
 import "@material/web/menu/menu-item.js";
-import { formatAddress } from "../../common/format.js";
 
 class SettingsButton extends LitElement {
-  static styles = css``;
+  static styles = [sharedStyles, css``];
 
   static properties = {
     address: { type: String },
@@ -59,7 +60,7 @@ class SettingsButton extends LitElement {
       <md-menu id="settings-menu" anchor="settings-anchor">
         <md-menu-item>
           <md-text-button
-            class="address-chip ${this.hasAddress ? "" : "display-none"}"
+            ${this.hasAddress ? "" : "display-none"}"
             title=${this.address}
             @click=${this.handleCopyAddress}
           >

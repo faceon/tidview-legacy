@@ -12,57 +12,9 @@ import {
 import { sharedStyles } from "../sharedStyles";
 
 class PositionsList extends LitElement {
-  static properties = {
-    positions: { type: Array },
-    loading: { type: Boolean },
-    openMarket: { type: Object },
-  };
-
-  constructor() {
-    super();
-    this.positions = [];
-    this.loading = false;
-    this.openMarket = null;
-  }
-
   static styles = [
     sharedStyles,
     css`
-      :host {
-        display: block;
-      }
-
-      .portfolio {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-md);
-        padding-top: var(--space-md);
-        border-top: 1px solid #eee;
-      }
-
-      .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        font-size: 13px;
-        font-weight: 600;
-        padding: 0 var(--space-md);
-      }
-
-      .portfolio-summary {
-        margin: 0 var(--space-md);
-      }
-
-      .meta {
-        padding: 0 var(--space-md);
-      }
-
-      .header span {
-        font-size: 12px;
-        font-weight: 400;
-        color: var(--color-muted);
-      }
-
       ul {
         margin: 0;
         padding: 0;
@@ -137,8 +89,32 @@ class PositionsList extends LitElement {
         font-size: 12px;
         color: #777;
       }
+
+      .summary-value {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--color-text);
+      }
+
+      .summary-pnl {
+        font-size: 13px;
+        font-weight: 600;
+      }
     `,
   ];
+
+  static properties = {
+    positions: { type: Array },
+    loading: { type: Boolean },
+    openMarket: { type: Object },
+  };
+
+  constructor() {
+    super();
+    this.positions = [];
+    this.loading = false;
+    this.openMarket = null;
+  }
 
   get safePositions() {
     return Array.isArray(this.positions) ? this.positions : [];
@@ -264,30 +240,28 @@ class PositionsList extends LitElement {
     const { totalCurrentValue, totalCashPnl, totalPercent } = this.summary;
 
     return html`
-      <section class="portfolio">
-        <div class="header">
-          <span>Portfolio</span>
-          <span>${positions.length} positions</span>
+      <div class="row-container">
+        <span>Portfolio</span>
+        <span>${positions.length} positions</span>
+      </div>
+      <div class="row-container">
+        <div class="col-container">
+          <span>Current Value</span>
+          <span class="summary-value">
+            ${formatCurrency(totalCurrentValue)}
+          </span>
         </div>
-        <div class="portfolio-summary">
-          <div class="summary-block">
-            <span>Current Value</span>
-            <span class="summary-value">
-              ${formatCurrency(totalCurrentValue)}
-            </span>
-          </div>
-          <div class="summary-block">
-            <span>Total PnL</span>
-            <span class="summary-pnl ${trendClass(totalCashPnl)}">
-              ${formatSignedCurrency(totalCashPnl)}
-              ${totalPercent != null
-                ? html`<span>(${formatPercent(totalPercent)})</span>`
-                : ""}
-            </span>
-          </div>
+        <div class="col-container">
+          <span>Total PnL</span>
+          <span class="summary-pnl ${trendClass(totalCashPnl)}">
+            ${formatSignedCurrency(totalCashPnl)}
+            ${totalPercent != null
+              ? html`<span>(${formatPercent(totalPercent)})</span>`
+              : ""}
+          </span>
         </div>
-        ${this.renderList(positions)}
-      </section>
+      </div>
+      ${this.renderList(positions)}
     `;
   }
 }

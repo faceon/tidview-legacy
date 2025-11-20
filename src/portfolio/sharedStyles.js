@@ -57,6 +57,20 @@ export const sharedStyles = css`
     font-size: 12px;
   }
 
+  .row-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+  }
+
+  .col-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
   /* Common Summary Block Styles */
   .portfolio-summary {
     display: flex;
@@ -65,25 +79,6 @@ export const sharedStyles = css`
     border-radius: var(--radius-md);
     padding: var(--space-md);
     background: var(--bg-subtle);
-  }
-
-  .summary-block {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
-    font-size: 12px;
-    color: #555;
-  }
-
-  .summary-value {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--color-text);
-  }
-
-  .summary-pnl {
-    font-size: 13px;
-    font-weight: 600;
   }
 
   .summary-pnl span {
