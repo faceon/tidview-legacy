@@ -9,13 +9,19 @@
   "scripts": {
     "build": "webpack --mode=production",
     "start": "webpack --mode=development --watch",
+    "lint": "ESLINT_USE_FLAT_CONFIG=true eslint .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
     "@babel/core": "^7.28.5",
     "@babel/preset-env": "^7.28.5",
+    "@eslint/js": "^9.39.1",
     "babel-loader": "^10.0.0",
     "copy-webpack-plugin": "^11.0.0",
+    "eslint": "^8.57.1",
+    "eslint-plugin-lit": "^2.1.1",
+    "eslint-plugin-wc": "^3.0.2",
+    "globals": "^16.5.0",
     "prettier": "^3.6.2",
     "webpack": "^5.89.0",
     "webpack-cli": "^5.1.4"
