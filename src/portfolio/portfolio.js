@@ -1,7 +1,7 @@
-import { LitElement, html, css, unsafeCSS } from "lit";
+import { LitElement, html, css } from "lit";
+import { sharedStyles } from "./sharedStyles";
 import { parseNumber, formatCurrency } from "../common/format.js";
 import cfg from "../common/config.js";
-import portfolioCss from "./portfolio.css";
 import "@material/web/iconButton/filled-icon-button.js";
 import "@material/web/iconButton/icon-button.js";
 import "@material/web/icon/icon.js";
@@ -11,90 +11,132 @@ import "./component/positions-list.js";
 import "./component/settings-button.js";
 
 class TidviewPortfolio extends LitElement {
-  static styles = css`
-    ${unsafeCSS(portfolioCss)}
+  static styles = [
+    sharedStyles,
+    css`
+      :host {
+        display: block;
+        width: 360px;
+        min-width: 360px;
+        max-width: 360px;
+        box-sizing: border-box;
+        overflow-x: hidden;
+        overflow-y: auto;
+        color: var(--color-text);
+        background: var(--bg-surface);
+        line-height: 1.4;
+      }
 
-    /* Lock the component to the fixed width used by sidepanel/popup and disallow horizontal scroll */
-    :host {
-      width: 360px; /* exact width to display */
-      min-width: 360px;
-      max-width: 360px;
-      box-sizing: border-box; /* ensure padding doesn't overflow */
-      overflow-x: hidden; /* prevent side scroll */
-      overflow-y: auto; /* allow vertical scroll if needed */
-    }
+      header,
+      main,
+      footer {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 0 var(--space-sm);
+      }
 
-    /* Use full component width for header/main/footer and rely on host box-sizing */
-    header,
-    main,
-    footer {
-      width: 100%;
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0 8px;
-    }
+      /* Top Section */
+      .top-area {
+        position: sticky;
+        top: 0;
+        background: var(--bg-surface);
+        padding: var(--space-lg);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-md);
+        z-index: 1;
+      }
 
-    /* Ensure the header top row (logo + title + controls) layout in a single row and don't wrap */
-    header > section {
-      display: flex;
-      align-items: center;
-      gap: var(--space-md);
-      flex-wrap: nowrap; /* force one-line layout */
-    }
+      /* Header Row (Logo + Nav) */
+      header > section {
+        display: flex;
+        align-items: center;
+        gap: var(--space-md);
+        flex-wrap: nowrap;
+      }
 
-    /* Layout nav itself as a single row and allow it to shrink if needed */
-    header > section nav {
-      display: flex;
-      align-items: center;
-      gap: var(--space-md);
-      flex: 1 1 auto; /* allow the nav to grow or shrink as needed */
-      min-width: 0; /* allow children to shrink properly */
-      flex-wrap: nowrap; /* keep icons, timer and settings on one line */
-    }
+      header h3 {
+        margin: 0;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
 
-    /* Allow children of nav (and section) to shrink properly to avoid overflow */
-    header > section > *,
-    header > section nav > * {
-      min-width: 0;
-    }
+      nav {
+        display: flex;
+        align-items: center;
+        gap: var(--space-md);
+        flex: 1;
+        min-width: 0;
+      }
 
-    /* Keep icon buttons from stretching */
-    header > section nav > md-icon-button,
-    header > section nav > md-filled-icon-button {
-      flex: 0 0 auto;
-    }
+      nav > settings-button {
+        margin-left: auto;
+      }
 
-    /* Ensure the refresh-timer remains compact */
-    header > section nav > .refresh-timer {
-      width: 50px;
-      text-align: right;
-      font-size: 11px;
-      color: var(--color-muted);
-    }
+      .refresh-timer {
+        width: 50px;
+        text-align: right;
+        font-size: 11px;
+        color: var(--color-muted);
+      }
 
-    /* Push the settings-button (custom element) to the right side of the nav */
-    header > section nav > settings-button {
-      margin-left: auto;
-    }
+      /* Address Form */
+      .address-form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-sm);
+      }
 
-    /* Small top-left logo in the header */
-    header > section figure img {
-      width: 16px;
-      height: 16px;
-      display: inline-block;
-    }
+      .address-form input {
+        width: 100%;
+        border: 1px solid #ccc;
+        border-radius: var(--radius-md);
+        font-size: 13px;
+        padding: var(--space-xs);
+        box-sizing: border-box;
+      }
 
-    /* Make sure the title doesn't wrap and can truncate instead */
-    header > section h3 {
-      margin: 0;
-      font-size: 14px;
-      flex: 0 1 auto;
-      min-width: 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-  `;
+      .row {
+        display: flex;
+        gap: var(--space-sm);
+      }
+
+      button {
+        flex: 1;
+        border: none;
+        border-radius: var(--radius-md);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        padding: var(--space-sm);
+        transition: opacity 0.2s;
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+
+      .primary-button {
+        background: var(--color-text);
+        color: #fff;
+      }
+      .secondary-button {
+        background: #e9e9e9;
+        color: var(--color-text);
+      }
+
+      /* Footer / Meta */
+      footer {
+        padding: var(--space-md);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+    `,
+  ];
 
   static properties = {
     address: { type: String },

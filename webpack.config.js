@@ -29,10 +29,6 @@ module.exports = {
           from: "src/portfolio/portfolio.html",
           to: "portfolio.html",
         },
-        {
-          from: "src/portfolio/portfolio.css",
-          to: "portfolio.css",
-        },
       ],
     }),
   ],

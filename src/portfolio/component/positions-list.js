@@ -1,4 +1,4 @@
-import { LitElement, html, css, unsafeCSS } from "lit";
+import { LitElement, html, css } from "lit";
 import { repeat } from "lit/directives/repeat.js";
 import {
   formatCurrency,
@@ -9,7 +9,7 @@ import {
   trendClass,
   parseNumber,
 } from "../../common/format.js";
-import sharedCss from "./../portfolio.css";
+import { sharedStyles } from "../sharedStyles";
 
 class PositionsList extends LitElement {
   static properties = {
@@ -25,9 +25,111 @@ class PositionsList extends LitElement {
     this.openMarket = null;
   }
 
-  static styles = css`
-    ${unsafeCSS(sharedCss)}
-  `;
+  static styles = [
+    sharedStyles,
+    css`
+      :host {
+        display: block;
+      }
+
+      .portfolio {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-md);
+        padding-top: var(--space-md);
+        border-top: 1px solid #eee;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .header span {
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--color-muted);
+      }
+
+      ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+      }
+
+      li {
+        display: flex;
+        gap: var(--space-md);
+        padding: var(--space-md);
+        border-top: 1px solid #f2f2f2;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        margin: 0 -8px;
+        border-radius: var(--radius-sm);
+      }
+
+      li:hover {
+        background-color: var(--bg-subtle);
+      }
+      li:first-child {
+        border-top: none;
+      }
+
+      .content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+      }
+
+      .title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--color-text);
+      }
+
+      .subtitle {
+        font-size: 11px;
+        color: var(--color-muted);
+        display: flex;
+        gap: var(--space-sm);
+        flex-wrap: wrap;
+      }
+
+      .stats {
+        text-align: right;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+        font-size: 12px;
+      }
+
+      .value {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--color-text);
+      }
+
+      .thumb {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-md);
+        object-fit: cover;
+        flex-shrink: 0;
+        background: #f4f4f4;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        color: #777;
+      }
+    `,
+  ];
 
   get safePositions() {
     return Array.isArray(this.positions) ? this.positions : [];
@@ -90,7 +192,6 @@ class PositionsList extends LitElement {
 
     return html`
       <li
-        class="position-row"
         @click=${() => this.handleOpenMarket(position.slug, position.eventSlug)}
         role="button"
         tabindex="0"
@@ -103,27 +204,23 @@ class PositionsList extends LitElement {
       >
         ${position.icon
           ? html`<img
-              class="position-thumb"
+              class="thumb"
               src=${position.icon}
               alt=""
               loading="lazy"
             />`
-          : html`<div class="position-thumb placeholder">
-              ${position.outcome?.[0] || "?"}
-            </div>`}
-        <div class="position-content">
-          <div class="position-title">${position.title}</div>
+          : html`<div class="thumb">${position.outcome?.[0] || "?"}</div>`}
+        <div class="content">
+          <div class="title">${position.title}</div>
           ${subtitleParts.length
-            ? html`<div class="position-subtitle">
+            ? html`<div class="subtitle">
                 ${subtitleParts.map((part) => html`<span>${part}</span>`)}
               </div>`
             : ""}
-          <div class="position-subtitle">${formatDate(position.endDate)}</div>
+          <div class="subtitle">${formatDate(position.endDate)}</div>
         </div>
-        <div class="position-stats">
-          <div class="position-stat-value">
-            ${formatCurrency(position.currentValue)}
-          </div>
+        <div class="stats">
+          <div class="value">${formatCurrency(position.currentValue)}</div>
           <div class="position-stat-pnl ${trendClass(position.cashPnl)}">
             ${formatSignedCurrency(position.cashPnl)}
             ${position.percentPnl != null
@@ -144,7 +241,7 @@ class PositionsList extends LitElement {
       return html`<div class="meta">No positions found for this address.</div>`;
     }
 
-    return html`<ul class="positions-list">
+    return html`<ul>
       ${repeat(
         positions,
         (pos) => pos.id,
@@ -159,7 +256,7 @@ class PositionsList extends LitElement {
 
     return html`
       <section class="portfolio">
-        <div class="portfolio-header">
+        <div class="header">
           <span>Portfolio</span>
           <span>${positions.length} positions</span>
         </div>
