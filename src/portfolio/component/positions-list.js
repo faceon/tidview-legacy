@@ -46,6 +46,15 @@ class PositionsList extends LitElement {
         align-items: baseline;
         font-size: 13px;
         font-weight: 600;
+        padding: 0 var(--space-md);
+      }
+
+      .portfolio-summary {
+        margin: 0 var(--space-md);
+      }
+
+      .meta {
+        padding: 0 var(--space-md);
       }
 
       .header span {
@@ -69,8 +78,8 @@ class PositionsList extends LitElement {
         border-top: 1px solid #f2f2f2;
         cursor: pointer;
         transition: background-color 0.2s;
-        margin: 0 -8px;
-        border-radius: var(--radius-sm);
+        margin: 0;
+        border-radius: 0;
       }
 
       li:hover {

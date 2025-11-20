@@ -16,9 +16,8 @@ class TidviewPortfolio extends LitElement {
     css`
       :host {
         display: block;
-        width: 360px;
-        min-width: 360px;
-        max-width: 360px;
+        width: 100%;
+        min-width: 320px;
         box-sizing: border-box;
         overflow-x: hidden;
         overflow-y: auto;
@@ -32,19 +31,7 @@ class TidviewPortfolio extends LitElement {
       footer {
         width: 100%;
         box-sizing: border-box;
-        padding: 0 var(--space-sm);
-      }
-
-      /* Top Section */
-      .top-area {
-        position: sticky;
-        top: 0;
-        background: var(--bg-surface);
-        padding: var(--space-lg);
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-md);
-        z-index: 1;
+        padding: var(--space-md);
       }
 
       /* Header Row (Logo + Nav) */
