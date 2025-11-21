@@ -157,11 +157,15 @@ class PositionsList extends LitElement {
 
   renderList(positions) {
     if (this.loading) {
-      return html`<div class="meta">Loading positions...</div>`;
+      return html`<div class="text-xs text-tid-muted">
+        Loading positions...
+      </div>`;
     }
 
     if (!positions.length) {
-      return html`<div class="meta">No positions found for this address.</div>`;
+      return html`<div class="text-xs text-tid-muted">
+        No positions found for this address.
+      </div>`;
     }
 
     return html`<ul class="m-0 p-0 list-none flex flex-col">

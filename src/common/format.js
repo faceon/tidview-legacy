@@ -73,9 +73,11 @@ export const formatSide = (value) => {
 };
 
 export const trendClass = (value) => {
+  // Return Tailwind class names instead of semantic class names so components
+  // can rely on utility classes without needing shared semantic CSS.
   const num = parseNumber(value);
-  if (num == null || num === 0) return "neutral";
-  return num > 0 ? "positive" : "negative";
+  if (num == null || num === 0) return "text-tid-neutral";
+  return num > 0 ? "text-tid-positive" : "text-tid-negative";
 };
 
 export const ensurePositiveInteger = (value, fallback = 1) => {
