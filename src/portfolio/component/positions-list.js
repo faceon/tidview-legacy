@@ -1,4 +1,4 @@
-import { LitElement, html, css } from "lit";
+import { LitElement, html, css, unsafeCSS } from "lit";
 import { repeat } from "lit/directives/repeat.js";
 import {
   formatCurrency,
@@ -10,10 +10,14 @@ import {
   parseNumber,
 } from "../../common/format.js";
 import { sharedStyles } from "../sharedStyles";
+import tailwindCss from "../tailwind.css";
 
 class PositionsList extends LitElement {
   static styles = [
     sharedStyles,
+    css`
+      ${unsafeCSS(tailwindCss)}
+    `,
     css`
       ul {
         margin: 0;

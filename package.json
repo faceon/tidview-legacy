@@ -7,8 +7,10 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "build": "webpack --mode=production",
-    "start": "webpack --mode=development --watch",
+    "build:css": "tailwindcss -i ./src/portfolio/tailwind.src.css -o ./src/portfolio/tailwind.css --minify",
+    "start:css": "tailwindcss -i ./src/portfolio/tailwind.src.css -o ./src/portfolio/tailwind.css --watch",
+    "build": "npm run build:css && webpack --mode=production",
+    "start": "npm run start:css & webpack --mode=development --watch",
     "lint": "ESLINT_USE_FLAT_CONFIG=true eslint .",
     "format": "prettier --write .",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -25,7 +27,10 @@
     "globals": "^16.5.0",
     "prettier": "^3.6.2",
     "webpack": "^5.89.0",
-    "webpack-cli": "^5.1.4"
+    "webpack-cli": "^5.1.4",
+    "tailwindcss": "^3.4.2",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.30"
   },
   "dependencies": {
     "@material/web": "^2.4.1",

@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Small helpers / defaults so Tailwind works well inside the extension UI */
+:root {
+  font-family:
+    Roboto,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    "Helvetica Neue",
+    Arial;
+}
