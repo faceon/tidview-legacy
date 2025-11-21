@@ -1,28 +1,47 @@
-import globals from "globals";
 import js from "@eslint/js";
-import react from "eslint-plugin-react";
+import globals from "globals";
+import reactPlugin from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
+import tseslint from "typescript-eslint";
 
-export default [
-  js.configs.recommended,
+const ignores = [
+  "dist/**",
+  "chrome/dist/**",
+  "out/**",
+  "node_modules/**",
+  "**/*.d.ts",
+  "eslint.config.mjs",
+];
+
+const tsTypedConfigs = tseslint.configs.recommended.map((config) => ({
+  ...config,
+  files: ["**/*.{ts,tsx,mts,cts}"],
+}));
+
+export default tseslint.config(
   {
-    files: ["**/*.{js,jsx}"],
+    ignores,
+  },
+  js.configs.recommended,
+  ...tsTypedConfigs,
+  {
+    files: ["**/*.{ts,tsx}", "**/*.mts", "**/*.cts"],
     languageOptions: {
-      globals: {
-        ...globals.browser,
-        ...globals.es2021,
-        chrome: "readonly",
-      },
       parserOptions: {
-        ecmaVersion: 2022,
+        ecmaVersion: "latest",
         sourceType: "module",
         ecmaFeatures: {
           jsx: true,
         },
       },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        chrome: "readonly",
+      },
     },
     plugins: {
-      react,
+      react: reactPlugin,
       "react-hooks": reactHooks,
     },
     settings: {
@@ -31,28 +50,47 @@ export default [
       },
     },
     rules: {
-      ...react.configs.recommended.rules,
-      ...reactHooks.configs.recommended.rules,
-      "no-unused-vars": "warn",
-      "no-undef": "error",
+      ...reactPlugin.configs.recommended.rules,
+      "react/jsx-uses-react": "off",
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
+      "@typescript-eslint/consistent-type-imports": "warn",
     },
   },
   {
-    files: [
-      "webpack.config.js",
-      "src/common/config.js",
-      "tailwind.config.js",
-      "postcss.config.js",
-    ],
+    files: ["**/*.{js,jsx,mjs,cjs}"],
     languageOptions: {
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
       globals: {
+        ...globals.browser,
         ...globals.node,
+        chrome: "readonly",
       },
     },
+    plugins: {
+      react: reactPlugin,
+      "react-hooks": reactHooks,
+    },
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
+    rules: {
+      ...reactPlugin.configs.recommended.rules,
+      "react/jsx-uses-react": "off",
+      "react/react-in-jsx-scope": "off",
+      "react/prop-types": "off",
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
+    },
   },
-  {
-    ignores: ["dist/", "node_modules/"],
-  },
-];
+);

@@ -93,6 +93,7 @@ out
 # generate output
 dist
 dist-web
+chrome/dist
 
 # Gatsby files
 .cache/

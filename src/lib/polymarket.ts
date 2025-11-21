@@ -1,34 +1,35 @@
-const API_BASE = "https://data-api.polymarket.com";
-const POLYGON_RPC_URL = "https://polygon-rpc.com/";
-const USDC_CONTRACT = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
-const ERC20_BALANCE_OF_SELECTOR = "0x70a08231";
-const USDC_DECIMALS = 6;
+import {
+  API_BASE,
+  ERC20_BALANCE_OF_SELECTOR,
+  POLYGON_RPC_URL,
+  USDC_CONTRACT,
+  USDC_DECIMALS,
+} from "./config";
+import type { RawPosition } from "@/types/portfolio";
 
-const HTTP_ERROR_MESSAGE = (context, status) =>
+const HTTP_ERROR_MESSAGE = (context: string, status: number) =>
   `${context} failed with HTTP ${status}`;
 
-/**
- * Execute a GET request and parse the JSON response.
- * @param {string} url
- * @param {string} context
- */
-async function fetchJson(url, context) {
+async function fetchJson<T>(url: string, context: string): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(HTTP_ERROR_MESSAGE(context, res.status));
   }
-  return res.json();
+  return (await res.json()) as T;
 }
 
-const toNumber = (value) => {
+const toNumber = (value: unknown): number | null => {
   if (value == null) return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-export async function fetchPositionsValue(address) {
+export async function fetchPositionsValue(address: string): Promise<number> {
   const url = `${API_BASE}/value?user=${encodeURIComponent(address)}`;
-  const data = await fetchJson(url, "Portfolio value request");
+  const data = await fetchJson<{ value?: number } | Array<{ value: number }>>(
+    url,
+    "Portfolio value request",
+  );
   const value = Array.isArray(data) ? data[0]?.value : data?.value;
   const numeric = toNumber(value);
   if (numeric == null) {
@@ -37,20 +38,20 @@ export async function fetchPositionsValue(address) {
   return numeric;
 }
 
-export async function fetchPositions(address) {
+export async function fetchPositions(address: string): Promise<RawPosition[]> {
   const url = `${API_BASE}/positions?user=${encodeURIComponent(address)}`;
-  const data = await fetchJson(url, "Positions request");
+  const data = await fetchJson<unknown[]>(url, "Positions request");
   if (!Array.isArray(data)) {
     throw new Error("Unexpected positions response format");
   }
-  return data;
+  return data as RawPosition[];
 }
 
-function normalizeAddress(address) {
+function normalizeAddress(address: string): string {
   return address.trim().toLowerCase().replace(/^0x/, "");
 }
 
-export async function fetchCashValue(address) {
+export async function fetchCashValue(address: string): Promise<number> {
   const normalizedAddress = normalizeAddress(address);
   const data = ERC20_BALANCE_OF_SELECTOR + normalizedAddress.padStart(64, "0");
 
@@ -75,7 +76,10 @@ export async function fetchCashValue(address) {
     throw new Error(HTTP_ERROR_MESSAGE("Polygon RPC request", res.status));
   }
 
-  const json = await res.json();
+  const json = (await res.json()) as {
+    result?: string;
+    error?: { message?: string };
+  };
   if (json?.error) {
     throw new Error(json.error?.message || "Polygon RPC error");
   }
@@ -85,11 +89,11 @@ export async function fetchCashValue(address) {
     throw new Error("Invalid Polygon RPC response");
   }
 
-  let balance;
+  let balance: number;
   try {
     const raw = BigInt(hexValue);
     balance = Number(raw) / 10 ** USDC_DECIMALS;
-  } catch (error) {
+  } catch {
     throw new Error("Failed to parse USDC balance");
   }
 
@@ -98,4 +102,14 @@ export async function fetchCashValue(address) {
   }
 
   return balance;
+}
+
+export async function fetchPortfolioSnapshot(address: string) {
+  const [positionsValue, cashValue, positions] = await Promise.all([
+    fetchPositionsValue(address),
+    fetchCashValue(address),
+    fetchPositions(address),
+  ]);
+
+  return { positionsValue, cashValue, positions };
 }
