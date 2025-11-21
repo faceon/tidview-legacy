@@ -18,93 +18,6 @@ class PositionsList extends LitElement {
     css`
       ${unsafeCSS(tailwindCss)}
     `,
-    css`
-      ul {
-        margin: 0;
-        padding: 0;
-        list-style: none;
-        display: flex;
-        flex-direction: column;
-      }
-
-      li {
-        display: flex;
-        gap: var(--space-md);
-        padding: var(--space-md);
-        border-top: 1px solid #f2f2f2;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        margin: 0;
-        border-radius: 0;
-      }
-
-      li:hover {
-        background-color: var(--bg-subtle);
-      }
-      li:first-child {
-        border-top: none;
-      }
-
-      .content {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-xs);
-      }
-
-      .title {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--color-text);
-      }
-
-      .subtitle {
-        font-size: 11px;
-        color: var(--color-muted);
-        display: flex;
-        gap: var(--space-sm);
-        flex-wrap: wrap;
-      }
-
-      .stats {
-        text-align: right;
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-xs);
-        font-size: 12px;
-      }
-
-      .value {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--color-text);
-      }
-
-      .thumb {
-        width: 40px;
-        height: 40px;
-        border-radius: var(--radius-md);
-        object-fit: cover;
-        flex-shrink: 0;
-        background: #f4f4f4;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        color: #777;
-      }
-
-      .summary-value {
-        font-size: 16px;
-        font-weight: 600;
-        color: var(--color-text);
-      }
-
-      .summary-pnl {
-        font-size: 13px;
-        font-weight: 600;
-      }
-    `,
   ];
 
   static properties = {
@@ -162,6 +75,7 @@ class PositionsList extends LitElement {
             maximumFractionDigits: 3,
           })}`
         : "";
+
     const curPriceText =
       position.curPrice != null
         ? `→ ${formatNumber(position.curPrice, {
@@ -169,6 +83,7 @@ class PositionsList extends LitElement {
             maximumFractionDigits: 3,
           })}`
         : "";
+
     const sizeText =
       position.size != null ? `Size ${formatNumber(position.size)}` : "";
 
@@ -181,6 +96,7 @@ class PositionsList extends LitElement {
 
     return html`
       <li
+        class="flex gap-3 p-3 border-t border-gray-200 first:border-t-0 cursor-pointer transition-colors duration-200 hover:bg-tid-bg-subtle"
         @click=${() => this.handleOpenMarket(position.slug, position.eventSlug)}
         role="button"
         tabindex="0"
@@ -193,27 +109,45 @@ class PositionsList extends LitElement {
       >
         ${position.icon
           ? html`<img
-              class="thumb"
+              class="w-10 h-10 rounded-md object-cover flex-shrink-0 bg-gray-100 flex items-center justify-center text-xs text-gray-500"
               src=${position.icon}
               alt=""
               loading="lazy"
             />`
-          : html`<div class="thumb">${position.outcome?.[0] || "?"}</div>`}
-        <div class="content">
-          <div class="title">${position.title}</div>
+          : html`<div
+              class="w-10 h-10 rounded-md flex-shrink-0 bg-gray-100 flex items-center justify-center text-xs text-gray-500"
+            >
+              ${position.outcome?.[0] || "?"}
+            </div>`}
+
+        <div class="flex-1 flex flex-col gap-1">
+          <div class="text-[13px] font-semibold text-tid-text">
+            ${position.title}
+          </div>
           ${subtitleParts.length
-            ? html`<div class="subtitle">
+            ? html`<div class="text-xs text-tid-muted flex gap-2 flex-wrap">
                 ${subtitleParts.map((part) => html`<span>${part}</span>`)}
               </div>`
             : ""}
-          <div class="subtitle">${formatDate(position.endDate)}</div>
+          <div class="text-xs text-tid-muted">
+            ${formatDate(position.endDate)}
+          </div>
         </div>
-        <div class="stats">
-          <div class="value">${formatCurrency(position.currentValue)}</div>
-          <div class="position-stat-pnl ${trendClass(position.cashPnl)}">
+
+        <div class="text-right flex flex-col gap-1 text-xs">
+          <div class="text-sm font-semibold text-tid-text">
+            ${formatCurrency(position.currentValue)}
+          </div>
+          <div
+            class="position-stat-pnl ${trendClass(
+              position.cashPnl,
+            )} text-[13px] font-semibold"
+          >
             ${formatSignedCurrency(position.cashPnl)}
             ${position.percentPnl != null
-              ? html`<span>(${formatPercent(position.percentPnl)})</span>`
+              ? html`<span class="text-xs"
+                  >(${formatPercent(position.percentPnl)})</span
+                >`
               : ""}
           </div>
         </div>
@@ -230,7 +164,7 @@ class PositionsList extends LitElement {
       return html`<div class="meta">No positions found for this address.</div>`;
     }
 
-    return html`<ul>
+    return html`<ul class="m-0 p-0 list-none flex flex-col">
       ${repeat(
         positions,
         (pos) => pos.id,
@@ -244,27 +178,34 @@ class PositionsList extends LitElement {
     const { totalCurrentValue, totalCashPnl, totalPercent } = this.summary;
 
     return html`
-      <div class="row-container">
-        <span>Portfolio</span>
-        <span>${positions.length} positions</span>
+      <div class="flex items-center justify-between mb-3">
+        <span class="font-medium">Portfolio</span>
+        <span class="text-sm text-tid-muted"
+          >${positions.length} positions</span
+        >
       </div>
-      <div class="row-container">
-        <div class="col-container">
-          <span>Current Value</span>
-          <span class="summary-value">
-            ${formatCurrency(totalCurrentValue)}
-          </span>
+
+      <div class="flex items-start justify-between gap-4 mb-3">
+        <div class="flex flex-col">
+          <span class="text-xs text-tid-muted">Current Value</span>
+          <span class="text-base font-semibold text-tid-text"
+            >${formatCurrency(totalCurrentValue)}</span
+          >
         </div>
-        <div class="col-container">
-          <span>Total PnL</span>
-          <span class="summary-pnl ${trendClass(totalCashPnl)}">
+
+        <div class="flex flex-col text-right">
+          <span class="text-xs text-tid-muted">Total PnL</span>
+          <span class="text-[13px] font-semibold ${trendClass(totalCashPnl)}">
             ${formatSignedCurrency(totalCashPnl)}
             ${totalPercent != null
-              ? html`<span>(${formatPercent(totalPercent)})</span>`
+              ? html`<span class="text-xs"
+                  >(${formatPercent(totalPercent)})</span
+                >`
               : ""}
           </span>
         </div>
       </div>
+
       ${this.renderList(positions)}
     `;
   }
