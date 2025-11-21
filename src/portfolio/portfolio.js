@@ -84,9 +84,7 @@ class TidviewPortfolio extends LitElement {
       >
         <!-- top most row for logo and controls -->
 
-        <nav
-          class="row-container flex flex-row items-center justify-between gap-3"
-        >
+        <nav class="flex items-center justify-between gap-3">
           <figure>
             <img src="icons/icon16.png" alt="Tidview Logo" />
           </figure>
@@ -117,11 +115,8 @@ class TidviewPortfolio extends LitElement {
         </nav>
 
         <!-- address form -->
-        <div
-          class="row-container ${this.hasAddress
-            ? "display-none"
-            : ""} items-center gap-2"
-        >
+        <div class="${this.hasAddress ? "hidden" : "flex items-center gap-2"}">
+          >
           <label for="address">Your 0x address</label>
           <input
             class="border border-gray-200 rounded px-2 py-1 text-sm"
@@ -150,30 +145,40 @@ class TidviewPortfolio extends LitElement {
         </div>
 
         <!-- Total: latest positions value + cash -->
-        <div class="row-container">
-          <div class="error ${!this.valuesError ? "display-none" : ""}">
+        <div class="flex items-center justify-between gap-3">
+          <div
+            class="${!this.valuesError
+              ? "hidden"
+              : "p-3 rounded-md bg-tid-bg-danger text-tid-negative text-xs"}"
+          >
             ${this.valuesError}
           </div>
 
           <div
-            class="portfolio-summary flex gap-3 border border-gray-200 rounded-md p-3 bg-[#fafafa]"
+            class="flex gap-3 border border-gray-200 rounded-md p-3 bg-[#fafafa]"
           >
-            <div class="summary-block">
-              <span>Total</span>
-              <span>${displayValues.total}</span>
+            <div class="flex flex-col">
+              <span class="text-xs text-tid-muted">Total</span>
+              <span class="text-base font-semibold text-tid-text"
+                >${displayValues.total}</span
+              >
             </div>
           </div>
 
           <div
-            class="portfolio-summary flex gap-3 border border-gray-200 rounded-md p-3 bg-[#fafafa]"
+            class="flex gap-3 border border-gray-200 rounded-md p-3 bg-[#fafafa]"
           >
-            <div class="summary-block">
-              <span>Positions</span>
-              <span>${displayValues.positions}</span>
+            <div class="flex flex-col">
+              <span class="text-xs text-tid-muted">Positions</span>
+              <span class="text-sm font-semibold text-tid-text"
+                >${displayValues.positions}</span
+              >
             </div>
-            <div class="summary-block">
-              <span>Cash</span>
-              <span>${displayValues.cash}</span>
+            <div class="flex flex-col">
+              <span class="text-xs text-tid-muted">Cash</span>
+              <span class="text-sm font-semibold text-tid-text"
+                >${displayValues.cash}</span
+              >
             </div>
           </div>
         </div>
@@ -191,13 +196,19 @@ class TidviewPortfolio extends LitElement {
       <!-- updated time -->
       <footer>
         ${this.positionsError
-          ? html`<div class="meta error">${this.positionsError}</div>`
+          ? html`<div
+              class="p-3 rounded-md bg-tid-bg-danger text-tid-negative text-xs"
+            >
+              ${this.positionsError}
+            </div>`
           : ""}
         ${this.statusMessage
-          ? html`<div class="meta">${this.statusMessage}</div>`
+          ? html`<div class="text-xs text-tid-muted">
+              ${this.statusMessage}
+            </div>`
           : ""}
         ${this.positionsUpdatedAt
-          ? html`<div class="meta">
+          ? html`<div class="text-xs text-tid-muted">
               Positions refreshed:
               ${new Date(this.positionsUpdatedAt).toLocaleString()}
             </div>`
