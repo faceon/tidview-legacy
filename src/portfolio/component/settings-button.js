@@ -1,7 +1,7 @@
-import { LitElement, html, css, unsafeCSS } from "lit";
+import { LitElement, html } from "lit";
 import { formatAddress } from "../../common/format.js";
 import { sharedStyles } from "../sharedStyles";
-import tailwindCss from "../tailwind.css";
+import { adoptTailwind } from "../tailwind-shared.js";
 import cfg from "../../common/config.js";
 import "@material/web/iconButton/filled-icon-button.js";
 import "@material/web/iconButton/icon-button.js";
@@ -11,13 +11,12 @@ import "@material/web/menu/menu.js";
 import "@material/web/menu/menu-item.js";
 
 class SettingsButton extends LitElement {
-  static styles = [
-    sharedStyles,
-    css`
-      ${unsafeCSS(tailwindCss)}
-    `,
-    css``,
-  ];
+  static styles = [sharedStyles];
+
+  connectedCallback() {
+    super.connectedCallback && super.connectedCallback();
+    adoptTailwind(this.renderRoot);
+  }
 
   static properties = {
     address: { type: String },

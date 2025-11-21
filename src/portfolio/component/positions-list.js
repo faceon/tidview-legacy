@@ -1,4 +1,4 @@
-import { LitElement, html, css, unsafeCSS } from "lit";
+import { LitElement, html } from "lit";
 import { repeat } from "lit/directives/repeat.js";
 import {
   formatCurrency,
@@ -10,15 +10,15 @@ import {
   parseNumber,
 } from "../../common/format.js";
 import { sharedStyles } from "../sharedStyles";
-import tailwindCss from "../tailwind.css";
+import { adoptTailwind } from "../tailwind-shared.js";
 
 class PositionsList extends LitElement {
-  static styles = [
-    sharedStyles,
-    css`
-      ${unsafeCSS(tailwindCss)}
-    `,
-  ];
+  static styles = [sharedStyles];
+
+  connectedCallback() {
+    super.connectedCallback && super.connectedCallback();
+    adoptTailwind(this.renderRoot);
+  }
 
   static properties = {
     positions: { type: Array },
