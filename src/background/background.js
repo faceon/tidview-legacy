@@ -1,4 +1,4 @@
-import { formatBadge, formatNumber } from "../common/format.js";
+import { formatBadge } from "../common/format.js";
 import {
   fetchCashValue,
   fetchPositions,

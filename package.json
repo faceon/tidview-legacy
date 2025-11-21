@@ -3,33 +3,31 @@
   "version": "0.0.1",
   "description": "Market tides, made visible - Chrome extension for Polymarket portfolio tracking",
   "license": "ISC",
-  "author": "",
-  "type": "commonjs",
-  "main": "index.js",
+  "private": true,
   "scripts": {
-    "build": "webpack --mode=production",
-    "start": "webpack --mode=development --watch",
-    "lint": "ESLINT_USE_FLAT_CONFIG=true eslint .",
-    "format": "prettier --write .",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.28.5",
-    "@babel/preset-env": "^7.28.5",
-    "@eslint/js": "^9.39.1",
-    "babel-loader": "^10.0.0",
-    "copy-webpack-plugin": "^11.0.0",
-    "eslint": "^8.57.1",
-    "eslint-plugin-lit": "^2.1.1",
-    "eslint-plugin-wc": "^3.0.2",
-    "globals": "^16.5.0",
-    "prettier": "^3.6.2",
-    "webpack": "^5.89.0",
-    "webpack-cli": "^5.1.4"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@material/web": "^2.4.1",
-    "lit": "^3.3.1",
-    "material-symbols": "^0.39.3"
+    "next": "16.0.3",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.1",
+    "@types/node": "22.9.1",
+    "@types/react": "19.2.6",
+    "@types/react-dom": "19.2.3",
+    "autoprefixer": "10.4.22",
+    "globals": "15.11.0",
+    "eslint": "9.39.1",
+    "eslint-config-next": "16.0.3",
+    "postcss": "8.5.6",
+    "tailwindcss": "3.4.18",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.47.0"
   }
 }

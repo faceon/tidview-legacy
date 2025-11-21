@@ -89,7 +89,10 @@ export async function fetchCashValue(address) {
   try {
     const raw = BigInt(hexValue);
     balance = Number(raw) / 10 ** USDC_DECIMALS;
-  } catch (error) {
+  } catch (err) {
+    // Surface the original exception to aid debugging while keeping
+    // the public error message consistent.
+    console.error("Failed to parse USDC balance:", err);
     throw new Error("Failed to parse USDC balance");
   }
 
