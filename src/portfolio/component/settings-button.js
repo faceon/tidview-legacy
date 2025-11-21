@@ -53,7 +53,7 @@ class SettingsButton extends LitElement {
 
   render() {
     return html` <md-icon-button
-        style="position: relative;"
+        class="relative"
         id="settings-anchor"
         @click=${() => {
           const menuEl = this.renderRoot.querySelector("#settings-menu");
@@ -66,7 +66,7 @@ class SettingsButton extends LitElement {
       <md-menu id="settings-menu" anchor="settings-anchor">
         <md-menu-item>
           <md-text-button
-            class="${this.hasAddress ? "" : "display-none"}"
+            class="${this.hasAddress ? "" : "hidden"} text-sm"
             title=${this.address}
             @click=${this.handleCopyAddress}
           >
@@ -75,7 +75,7 @@ class SettingsButton extends LitElement {
         </md-menu-item>
 
         <md-menu-item>
-          <md-text-button @click=${this.handleToggleOpenMode}>
+          <md-text-button class="text-sm" @click=${this.handleToggleOpenMode}>
             ${this.openInPopup ? "open in sidepanel" : "open in popup"}
           </md-text-button>
         </md-menu-item>
