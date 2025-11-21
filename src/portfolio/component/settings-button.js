@@ -1,6 +1,5 @@
 import { LitElement, html } from "lit";
 import { formatAddress } from "../../common/format.js";
-import { sharedStyles } from "../sharedStyles";
 import { adoptTailwind } from "../tailwind-shared.js";
 import cfg from "../../common/config.js";
 import "@material/web/iconButton/filled-icon-button.js";
@@ -11,7 +10,7 @@ import "@material/web/menu/menu.js";
 import "@material/web/menu/menu-item.js";
 
 class SettingsButton extends LitElement {
-  static styles = [sharedStyles];
+  // No static css here - visual styles use Tailwind utilities and the shared sheet
 
   connectedCallback() {
     super.connectedCallback && super.connectedCallback();

@@ -9,12 +9,9 @@ import {
   trendClass,
   parseNumber,
 } from "../../common/format.js";
-import { sharedStyles } from "../sharedStyles";
 import { adoptTailwind } from "../tailwind-shared.js";
 
 class PositionsList extends LitElement {
-  static styles = [sharedStyles];
-
   connectedCallback() {
     super.connectedCallback && super.connectedCallback();
     adoptTailwind(this.renderRoot);
