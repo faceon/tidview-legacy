@@ -1,3 +1,4 @@
+/* DEPRECATED: replaced by React component at src/portfolio/components/SettingsButton.jsx */
 import { LitElement, html } from "lit";
 import { formatAddress } from "../../common/format.js";
 import { adoptTailwind } from "../tailwind-shared.js";

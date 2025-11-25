@@ -2,7 +2,8 @@
 
 ## Architecture Snapshot
 
-- Chrome MV3 extension (manifest in `src/static/manifest.json`) that shows a Polymarket wallet total in the toolbar badge and renders a Lit-based portfolio UI.
+-- Chrome MV3 extension (manifest in `src/static/manifest.json`) that shows a Polymarket wallet total in the toolbar badge and renders a React-based portfolio UI.
+
 - `webpack.config.js` builds two entry points: the service worker (`background.js`) and the portfolio UI (`portfolio.js` + shared CSS). Static assets and HTML are copied into `dist/` for Chrome to load.
 - `src/common/config.js` centralizes knob values (badge color, polling cadence, regex, portfolio path) and is the single source for `IS_DEVELOPMENT` behavior (side panel vs popup).
 
@@ -15,7 +16,8 @@
 
 ## Portfolio UI (`src/portfolio/`)
 
-- Entrypoint is `portfolio.html` → `<tidview-portfolio>` defined in `portfolio.js`; `positions-list.js` renders a summarized, sortable list using Lit + Material Web components.
+-- Entrypoint is `portfolio.html` → mounted React app from `src/portfolio/index.jsx`; `components/*` contains the React components interacting with Material Web elements.
+
 - The component mirrors extension state via `chrome.storage.sync/session` reads on load plus `chrome.storage.onChanged` listeners, so any background writes instantly update the UI.
 - User input (wallet address) is stored in sync storage only after passing `cfg.ADDRESS_REGEX`; saving/refreshing fire `chrome.runtime.sendMessage({ type: "refresh" })` and optimistically toggle `isBusy`/`positionsLoading` flags.
 - Positions are normalized (`normalizePosition`) and sorted by `currentValue`, with derived totals (current value, cash PnL, percent PnL) shown in both the main value card and the positions summary.
@@ -24,7 +26,7 @@
 
 - `src/background/polymarket-api.js` wraps all network calls: `fetchPositionsValue` and `fetchPositions` hit `https://data-api.polymarket.com`, while `fetchCashValue` performs a Polygon RPC `eth_call` against the USDC contract (balance scaled by `USDC_DECIMALS`). All helpers throw on unexpected payloads so the background worker can surface issues cleanly.
 - `src/common/format.js` centralizes numeric parsing, badge formatting, signed currency, and trend classes. Reuse these helpers instead of ad-hoc `Intl.NumberFormat` instances to keep UI output consistent.
-- `src/common/lit-dev-warn-suppressor.js` is injected before the portfolio entry during development builds to silence Lit’s dev-mode toast; keep it at the top of the `portfolio` entry array if new bundles are added.
+  -- Tailwind styles are adopted with a shared helper; the React entry uses that same helper to ensure consistent styles across builds.
 
 ## Storage & Messaging Patterns
 

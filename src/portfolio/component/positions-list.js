@@ -1,3 +1,4 @@
+/* DEPRECATED: replaced by React component at src/portfolio/components/PositionsList.jsx */
 import { LitElement, html } from "lit";
 import { repeat } from "lit/directives/repeat.js";
 import {
