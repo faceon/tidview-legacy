@@ -1,5 +1,4 @@
 import globals from "globals";
-import lit from "eslint-plugin-lit";
 import wc from "eslint-plugin-wc";
 import js from "@eslint/js";
 
@@ -19,22 +18,16 @@ export default [
       },
     },
     plugins: {
-      lit,
       wc,
     },
     rules: {
-      ...lit.configs.recommended.rules,
       ...wc.configs.recommended.rules,
       "no-unused-vars": "warn",
       "no-undef": "error",
     },
   },
   {
-    files: [
-      "webpack.config.js",
-      "src/common/config.js",
-      "src/common/lit-dev-warn-suppressor.js",
-    ],
+    files: ["webpack.config.js", "src/common/config.js"],
     languageOptions: {
       globals: {
         ...globals.node,

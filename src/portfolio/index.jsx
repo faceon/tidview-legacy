@@ -53,7 +53,7 @@ function normalizePosition(raw) {
 }
 
 function App() {
-  // main state copied from original Lit component
+  // main state and logic copied from the previous implementation
   const [address, setAddress] = useState("");
   const hasAddress = useMemo(
     () => cfg.ADDRESS_REGEX.test(String(address || "")),
@@ -305,7 +305,7 @@ function App() {
     if (!cfg.ADDRESS_REGEX.test(trimmed)) {
       // keep the same behavior as before
       // (the UI shows an error via valuesError)
-      // The previous Lit version set lastError and returned; we'll set valuesError
+      // The previous implementation set lastError and returned; we'll set valuesError
       setValuesError("Please enter a valid 0x address.");
       setStatusMessage("");
       return;

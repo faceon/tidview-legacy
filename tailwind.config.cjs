@@ -1,7 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: {
-    files: ["./src/**/*.{html,js}"],
+    // include common source extensions (jsx/tsx) so Tailwind finds classes
+    files: ["./src/**/*.{html,js,jsx,ts,tsx}"],
     // Safelist classes that are generated dynamically at runtime or built from JS
     safelist: [
       "text-tid-positive",

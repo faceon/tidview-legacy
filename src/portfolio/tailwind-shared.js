@@ -28,7 +28,9 @@ export function adoptTailwind(root) {
   if (!root._tailwindInjected) {
     const el = document.createElement("style");
     el.textContent = tailwindCss;
-    // In Lit, renderRoot === shadowRoot; appending style to shadowRoot is fine
+    // For custom-element based components, renderRoot === shadowRoot; appending a
+    // style tag is a safe fallback. In React apps we usually adopt Tailwind globally
+    // into the document; this helper still works for both patterns.
     root.appendChild(el);
     root._tailwindInjected = true;
   }
