@@ -1,4 +1,4 @@
-# Tidview
+# Tidview (legacy)
 
 **Market tides, made visible**
 
