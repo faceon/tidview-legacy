@@ -1,12 +1,12 @@
 import globals from "globals";
-import lit from "eslint-plugin-lit";
-import wc from "eslint-plugin-wc";
 import js from "@eslint/js";
+import react from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
 
 export default [
   js.configs.recommended,
   {
-    files: ["**/*.js"],
+    files: ["src/**/*.js"],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -16,25 +16,31 @@ export default [
       parserOptions: {
         ecmaVersion: 2022,
         sourceType: "module",
+        ecmaFeatures: {
+          jsx: true,
+        },
       },
     },
     plugins: {
-      lit,
-      wc,
+      react,
+      "react-hooks": reactHooks,
     },
     rules: {
-      ...lit.configs.recommended.rules,
-      ...wc.configs.recommended.rules,
+      ...react.configs.recommended.rules,
+      ...reactHooks.configs.recommended.rules,
+      "react/react-in-jsx-scope": "off",
+      "react/prop-types": "off",
       "no-unused-vars": "warn",
       "no-undef": "error",
     },
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
   },
   {
-    files: [
-      "webpack.config.js",
-      "src/common/config.js",
-      "src/common/lit-dev-warn-suppressor.js",
-    ],
+    files: ["webpack.config.js", "src/common/config.js", "babel.config.js"],
     languageOptions: {
       globals: {
         ...globals.node,

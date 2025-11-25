@@ -1,5 +1,6 @@
 // Shared constructible stylesheet for tailwind output.
-// This avoids duplicating the entire tailwind string inside each component's styles.
+// React renders into the document (or a shadow root) so we lazily inject the
+// compiled CSS once per document/root instead of duplicating the string.
 import tailwindCss from "./tailwind.css";
 
 const supportsConstructible =
@@ -7,29 +8,48 @@ const supportsConstructible =
   typeof CSSStyleSheet.prototype.replaceSync === "function";
 
 let tailwindSheet = null;
+const FALLBACK_FLAG = Symbol("tailwindTailInjected");
 
 if (supportsConstructible) {
   tailwindSheet = new CSSStyleSheet();
-  // replaceSync is synchronous and safe in Chrome extension context
   tailwindSheet.replaceSync(tailwindCss);
 }
 
+function resolveTarget(root) {
+  if (!root) return null;
+  if (root instanceof Document || root instanceof ShadowRoot) {
+    return root;
+  }
+  if (root.ownerDocument) {
+    return root.ownerDocument;
+  }
+  if (typeof Document !== "undefined" && root === document) {
+    return document;
+  }
+  return typeof document !== "undefined" ? document : null;
+}
+
 export function adoptTailwind(root) {
-  if (!root) return;
+  const stylesTarget = resolveTarget(root);
+  if (!stylesTarget) return;
+
   if (supportsConstructible && tailwindSheet) {
-    const existing = root.adoptedStyleSheets || [];
+    const existing = stylesTarget.adoptedStyleSheets || [];
     if (!existing.includes(tailwindSheet)) {
-      root.adoptedStyleSheets = [...existing, tailwindSheet];
+      stylesTarget.adoptedStyleSheets = [...existing, tailwindSheet];
     }
     return;
   }
 
-  // Fallback for environments without constructible stylesheets: append a style tag once
-  if (!root._tailwindInjected) {
+  const appendTarget =
+    stylesTarget instanceof Document
+      ? stylesTarget.head || stylesTarget.body || stylesTarget
+      : stylesTarget;
+
+  if (!appendTarget[FALLBACK_FLAG]) {
     const el = document.createElement("style");
     el.textContent = tailwindCss;
-    // In Lit, renderRoot === shadowRoot; appending style to shadowRoot is fine
-    root.appendChild(el);
-    root._tailwindInjected = true;
+    appendTarget.appendChild(el);
+    appendTarget[FALLBACK_FLAG] = true;
   }
 }

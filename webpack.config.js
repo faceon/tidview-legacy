@@ -1,17 +1,13 @@
 const path = require("path");
 const CopyPlugin = require("copy-webpack-plugin");
-
-const litSuppressor = path.resolve(
-  __dirname,
-  "src/common/lit-dev-warn-suppressor.js",
-);
+const babelConfig = path.resolve(__dirname, "babel.config.js");
 
 module.exports = {
   mode: "production",
   devtool: "source-map",
   entry: {
     background: "./src/background/background.js",
-    portfolio: [litSuppressor, "./src/portfolio/portfolio.js"],
+    portfolio: "./src/portfolio/portfolio.js",
   },
   output: {
     path: path.resolve(__dirname, "dist"),
@@ -37,7 +33,13 @@ module.exports = {
       {
         test: /\.js$/,
         exclude: /node_modules/,
-        type: "javascript/esm",
+        use: {
+          loader: "babel-loader",
+          options: {
+            cacheDirectory: true,
+            configFile: babelConfig,
+          },
+        },
       },
       {
         test: /\.css$/i,

@@ -1,5 +1,4 @@
-import { LitElement, html } from "lit";
-import { repeat } from "lit/directives/repeat.js";
+import { useMemo } from "react";
 import {
   formatCurrency,
   formatSignedCurrency,
@@ -9,207 +8,190 @@ import {
   trendClass,
   parseNumber,
 } from "../../common/format.js";
-import { adoptTailwind } from "../tailwind-shared.js";
 
-class PositionsList extends LitElement {
-  connectedCallback() {
-    super.connectedCallback && super.connectedCallback();
-    adoptTailwind(this.renderRoot);
-  }
+function buildSummary(positions) {
+  const totalCurrentValue = positions.reduce(
+    (sum, pos) => sum + (parseNumber(pos.currentValue) ?? 0),
+    0,
+  );
+  const totalCashPnl = positions.reduce(
+    (sum, pos) => sum + (parseNumber(pos.cashPnl) ?? 0),
+    0,
+  );
+  const totalInitialValue = positions.reduce(
+    (sum, pos) => sum + (parseNumber(pos.initialValue) ?? 0),
+    0,
+  );
+  const totalPercent =
+    totalInitialValue > 0 ? (totalCashPnl / totalInitialValue) * 100 : null;
 
-  static properties = {
-    positions: { type: Array },
-    loading: { type: Boolean },
-    openMarket: { type: Object },
+  return {
+    totalCurrentValue,
+    totalCashPnl,
+    totalPercent,
+  };
+}
+
+function subtitleParts(position) {
+  const avgPriceText =
+    position.avgPrice != null
+      ? `@ ${formatNumber(position.avgPrice, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 3,
+        })}`
+      : "";
+
+  const curPriceText =
+    position.curPrice != null
+      ? `→ ${formatNumber(position.curPrice, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 3,
+        })}`
+      : "";
+
+  const sizeText =
+    position.size != null ? `Size ${formatNumber(position.size)}` : "";
+
+  return [position.outcome, sizeText, avgPriceText, curPriceText].filter(
+    Boolean,
+  );
+}
+
+export default function PositionsList({ positions, loading, openMarket }) {
+  const safePositions = useMemo(
+    () => (Array.isArray(positions) ? positions : []),
+    [positions],
+  );
+  const summary = useMemo(() => buildSummary(safePositions), [safePositions]);
+
+  const handleOpenMarket = (slug, eventSlug) => {
+    if (openMarket) {
+      openMarket(slug, eventSlug);
+    }
   };
 
-  constructor() {
-    super();
-    this.positions = [];
-    this.loading = false;
-    this.openMarket = null;
-  }
+  const renderPosition = (position) => {
+    const parts = subtitleParts(position);
 
-  get safePositions() {
-    return Array.isArray(this.positions) ? this.positions : [];
-  }
-
-  handleOpenMarket(slug, eventSlug) {
-    if (this.openMarket) {
-      this.openMarket(slug, eventSlug);
-    }
-  }
-
-  get summary() {
-    const positions = this.safePositions;
-    const totalCurrentValue = positions.reduce(
-      (sum, pos) => sum + (parseNumber(pos.currentValue) ?? 0),
-      0,
-    );
-    const totalCashPnl = positions.reduce(
-      (sum, pos) => sum + (parseNumber(pos.cashPnl) ?? 0),
-      0,
-    );
-    const totalInitialValue = positions.reduce(
-      (sum, pos) => sum + (parseNumber(pos.initialValue) ?? 0),
-      0,
-    );
-    const totalPercent =
-      totalInitialValue > 0 ? (totalCashPnl / totalInitialValue) * 100 : null;
-
-    return {
-      totalCurrentValue,
-      totalCashPnl,
-      totalPercent,
-    };
-  }
-
-  renderPosition(position) {
-    const avgPriceText =
-      position.avgPrice != null
-        ? `@ ${formatNumber(position.avgPrice, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 3,
-          })}`
-        : "";
-
-    const curPriceText =
-      position.curPrice != null
-        ? `→ ${formatNumber(position.curPrice, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 3,
-          })}`
-        : "";
-
-    const sizeText =
-      position.size != null ? `Size ${formatNumber(position.size)}` : "";
-
-    const subtitleParts = [
-      position.outcome,
-      sizeText,
-      avgPriceText,
-      curPriceText,
-    ].filter(Boolean);
-
-    return html`
+    return (
       <li
-        class="flex gap-3 p-3 border-t border-gray-200 first:border-t-0 cursor-pointer transition-colors duration-200 hover:bg-tid-bg-subtle"
-        @click=${() => this.handleOpenMarket(position.slug, position.eventSlug)}
+        key={position.id}
+        className="flex gap-3 p-3 border-t border-gray-200 first:border-t-0 cursor-pointer transition-colors duration-200 hover:bg-tid-bg-subtle"
         role="button"
-        tabindex="0"
-        @keydown=${(event) => {
+        tabIndex={0}
+        onClick={() => handleOpenMarket(position.slug, position.eventSlug)}
+        onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
-            this.handleOpenMarket(position.slug, position.eventSlug);
+            handleOpenMarket(position.slug, position.eventSlug);
           }
         }}
       >
-        ${position.icon
-          ? html`<img
-              class="w-10 h-10 rounded-md object-cover flex-shrink-0 bg-gray-100 flex items-center justify-center text-xs text-gray-500"
-              src=${position.icon}
-              alt=""
-              loading="lazy"
-            />`
-          : html`<div
-              class="w-10 h-10 rounded-md flex-shrink-0 bg-gray-100 flex items-center justify-center text-xs text-gray-500"
-            >
-              ${position.outcome?.[0] || "?"}
-            </div>`}
-
-        <div class="flex-1 flex flex-col gap-1">
-          <div class="text-[13px] font-semibold text-tid-text">
-            ${position.title}
+        {position.icon ? (
+          <img
+            className="w-10 h-10 rounded-md object-cover flex-shrink-0 bg-gray-100 flex items-center justify-center text-xs text-gray-500"
+            src={position.icon}
+            alt=""
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-10 h-10 rounded-md flex-shrink-0 bg-gray-100 flex items-center justify-center text-xs text-gray-500">
+            {position.outcome?.[0] || "?"}
           </div>
-          ${subtitleParts.length
-            ? html`<div class="text-xs text-tid-muted flex gap-2 flex-wrap">
-                ${subtitleParts.map((part) => html`<span>${part}</span>`)}
-              </div>`
-            : ""}
-          <div class="text-xs text-tid-muted">
-            ${formatDate(position.endDate)}
+        )}
+
+        <div className="flex-1 flex flex-col gap-1">
+          <div className="text-[13px] font-semibold text-tid-text">
+            {position.title}
+          </div>
+          {parts.length ? (
+            <div className="text-xs text-tid-muted flex gap-2 flex-wrap">
+              {parts.map((part, index) => (
+                <span key={`${position.id}-${index}`}>{part}</span>
+              ))}
+            </div>
+          ) : null}
+          <div className="text-xs text-tid-muted">
+            {formatDate(position.endDate)}
           </div>
         </div>
 
-        <div class="text-right flex flex-col gap-1 text-xs">
-          <div class="text-sm font-semibold text-tid-text">
-            ${formatCurrency(position.currentValue)}
+        <div className="text-right flex flex-col gap-1 text-xs">
+          <div className="text-sm font-semibold text-tid-text">
+            {formatCurrency(position.currentValue)}
           </div>
           <div
-            class="position-stat-pnl ${trendClass(
+            className={`position-stat-pnl ${trendClass(
               position.cashPnl,
-            )} text-[13px] font-semibold"
+            )} text-[13px] font-semibold`}
           >
-            ${formatSignedCurrency(position.cashPnl)}
-            ${position.percentPnl != null
-              ? html`<span class="text-xs"
-                  >(${formatPercent(position.percentPnl)})</span
-                >`
-              : ""}
+            {formatSignedCurrency(position.cashPnl)}
+            {position.percentPnl != null ? (
+              <span className="text-xs">
+                ({formatPercent(position.percentPnl)})
+              </span>
+            ) : null}
           </div>
         </div>
       </li>
-    `;
-  }
+    );
+  };
 
-  renderList(positions) {
-    if (this.loading) {
-      return html`<div class="text-xs text-tid-muted">
-        Loading positions...
-      </div>`;
+  const renderList = () => {
+    if (loading) {
+      return <div className="text-xs text-tid-muted">Loading positions...</div>;
     }
 
-    if (!positions.length) {
-      return html`<div class="text-xs text-tid-muted">
-        No positions found for this address.
-      </div>`;
+    if (!safePositions.length) {
+      return (
+        <div className="text-xs text-tid-muted">
+          No positions found for this address.
+        </div>
+      );
     }
 
-    return html`<ul class="m-0 p-0 list-none flex flex-col">
-      ${repeat(
-        positions,
-        (pos) => pos.id,
-        (pos) => this.renderPosition(pos),
-      )}
-    </ul>`;
-  }
+    return (
+      <ul className="m-0 p-0 list-none flex flex-col">
+        {safePositions.map(renderPosition)}
+      </ul>
+    );
+  };
 
-  render() {
-    const positions = this.safePositions;
-    const { totalCurrentValue, totalCashPnl, totalPercent } = this.summary;
-
-    return html`
-      <div class="flex items-center justify-between mb-3">
-        <span class="font-medium">Portfolio</span>
-        <span class="text-sm text-tid-muted"
-          >${positions.length} positions</span
-        >
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-3">
+        <span className="font-medium">Portfolio</span>
+        <span className="text-sm text-tid-muted">
+          {safePositions.length} positions
+        </span>
       </div>
 
-      <div class="flex items-start justify-between gap-4 mb-3">
-        <div class="flex flex-col">
-          <span class="text-xs text-tid-muted">Current Value</span>
-          <span class="text-base font-semibold text-tid-text"
-            >${formatCurrency(totalCurrentValue)}</span
-          >
+      <div className="flex items-start justify-between gap-4 mb-3">
+        <div className="flex flex-col">
+          <span className="text-xs text-tid-muted">Current Value</span>
+          <span className="text-base font-semibold text-tid-text">
+            {formatCurrency(summary.totalCurrentValue)}
+          </span>
         </div>
 
-        <div class="flex flex-col text-right">
-          <span class="text-xs text-tid-muted">Total PnL</span>
-          <span class="text-[13px] font-semibold ${trendClass(totalCashPnl)}">
-            ${formatSignedCurrency(totalCashPnl)}
-            ${totalPercent != null
-              ? html`<span class="text-xs"
-                  >(${formatPercent(totalPercent)})</span
-                >`
-              : ""}
+        <div className="flex flex-col text-right">
+          <span className="text-xs text-tid-muted">Total PnL</span>
+          <span
+            className={`text-[13px] font-semibold ${trendClass(
+              summary.totalCashPnl,
+            )}`}
+          >
+            {formatSignedCurrency(summary.totalCashPnl)}
+            {summary.totalPercent != null ? (
+              <span className="text-xs">
+                ({formatPercent(summary.totalPercent)})
+              </span>
+            ) : null}
           </span>
         </div>
       </div>
 
-      ${this.renderList(positions)}
-    `;
-  }
+      {renderList()}
+    </section>
+  );
 }
-
-customElements.define("positions-list", PositionsList);

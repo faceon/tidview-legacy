@@ -1,155 +1,61 @@
-import { LitElement, html } from "lit";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { formatAddress } from "../../common/format.js";
-import { adoptTailwind } from "../tailwind-shared.js";
 import cfg from "../../common/config.js";
-import "@material/web/iconButton/filled-icon-button.js";
-import "@material/web/iconButton/icon-button.js";
-import "@material/web/icon/icon.js";
-import "@material/web/button/filled-tonal-button.js";
-import "@material/web/menu/menu.js";
-import "@material/web/menu/menu-item.js";
 
-class SettingsButton extends LitElement {
-  // No static css here - visual styles use Tailwind utilities and the shared sheet
+const menuBaseClasses =
+  "absolute right-0 mt-2 w-48 rounded-md border border-gray-200 bg-white shadow-lg z-10";
 
-  connectedCallback() {
-    super.connectedCallback && super.connectedCallback();
-    adoptTailwind(this.renderRoot);
-  }
+export default function SettingsButton({ address, openInPopup, onModeChange }) {
+  const hasAddress = cfg.ADDRESS_REGEX.test(address);
+  const [copied, setCopied] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const copyTimeoutRef = useRef(null);
+  const menuRef = useRef(null);
+  const buttonRef = useRef(null);
+  const lastActiveTabIdRef = useRef(null);
 
-  static properties = {
-    address: { type: String },
-    copied: { type: Boolean },
-    openInPopup: { type: Boolean },
-  };
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        window.clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
 
-  constructor() {
-    super();
-    this.address = "";
-    this.copied = false;
-    this.openInPopup = true;
-    this.lastActiveTabId = null;
-  }
-
-  get hasAddress() {
-    return cfg.ADDRESS_REGEX.test(this.address);
-  }
-
-  handleCopyAddress() {
-    if (!this.hasAddress) return;
-    navigator.clipboard
-      .writeText(this.address)
-      .then(() => {
-        this.copied = true;
-        setTimeout(() => {
-          this.copied = false;
-        }, 2000); // 2초 후 원래 표시로 복귀
-      })
-      .catch((error) => {
-        console.error("Failed to copy address", error);
-      });
-  }
-
-  render() {
-    return html` <md-icon-button
-        class="relative"
-        id="settings-anchor"
-        @click=${() => {
-          const menuEl = this.renderRoot.querySelector("#settings-menu");
-          menuEl.open = !menuEl.open;
-        }}
-      >
-        <md-icon>settings</md-icon>
-      </md-icon-button>
-
-      <md-menu id="settings-menu" anchor="settings-anchor">
-        <md-menu-item>
-          <md-text-button
-            class="${this.hasAddress ? "" : "hidden"} text-sm"
-            title=${this.address}
-            @click=${this.handleCopyAddress}
-          >
-            ${this.copied ? "copied" : formatAddress(this.address)}
-          </md-text-button>
-        </md-menu-item>
-
-        <md-menu-item>
-          <md-text-button class="text-sm" @click=${this.handleToggleOpenMode}>
-            ${this.openInPopup ? "open in sidepanel" : "open in popup"}
-          </md-text-button>
-        </md-menu-item>
-      </md-menu>`;
-  }
-
-  async handleToggleOpenMode(e) {
-    e.stopPropagation();
-    e.preventDefault();
-    if (!chrome?.storage?.sync) {
+  useEffect(() => {
+    if (!menuOpen) {
       return;
     }
 
-    const nextValue = !this.openInPopup;
-    this.openInPopup = nextValue;
-    try {
-      await chrome.storage.sync.set({ openInPopup: nextValue });
-      await chrome.runtime.sendMessage({
-        type: "setOpenMode",
-        openInPopup: nextValue,
-      });
-      if (nextValue) {
-        await this.openPopupView();
-      } else {
-        await this.openSidePanelView();
+    const handleClick = (event) => {
+      if (
+        !buttonRef.current?.contains(event.target) &&
+        !menuRef.current?.contains(event.target)
+      ) {
+        setMenuOpen(false);
       }
-    } catch (error) {
-      console.error("Failed to toggle open mode", error);
-    }
-  }
+    };
 
-  async openPopupView() {
-    await this.closeSidePanelIfNeeded();
-
-    if (chrome?.action?.openPopup) {
-      try {
-        await chrome.action.openPopup();
-      } catch (error) {
-        console.error("Failed to open popup", error);
+    const handleEsc = (event) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
       }
-    }
-  }
+    };
 
-  async openSidePanelView() {
-    if (!chrome?.sidePanel || !chrome?.tabs?.query) {
-      return;
-    }
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleEsc);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, [menuOpen]);
 
-    try {
-      const tabs = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      const tabId = tabs?.[0]?.id;
-      if (typeof tabId === "number") {
-        this.lastActiveTabId = tabId;
-        await chrome.sidePanel.open({ tabId });
-      } else {
-        await chrome.sidePanel.open({});
-      }
-    } catch (error) {
-      console.error("Failed to open side panel", error);
-    }
-
-    if (typeof window !== "undefined" && window.close) {
-      window.close();
-    }
-  }
-
-  async closeSidePanelIfNeeded() {
+  const closeSidePanelIfNeeded = useCallback(async () => {
     if (!chrome?.sidePanel) {
       return;
     }
 
-    let tabIdCandidate = this.lastActiveTabId;
+    let tabIdCandidate = lastActiveTabIdRef.current;
     if (typeof tabIdCandidate !== "number" && chrome?.tabs?.query) {
       try {
         const tabs = await chrome.tabs.query({
@@ -171,7 +77,128 @@ class SettingsButton extends LitElement {
     } catch (error) {
       console.error("Failed to close side panel", error);
     }
-  }
-}
+  }, []);
 
-customElements.define("settings-button", SettingsButton);
+  const openPopupView = useCallback(async () => {
+    await closeSidePanelIfNeeded();
+    if (chrome?.action?.openPopup) {
+      try {
+        await chrome.action.openPopup();
+      } catch (error) {
+        console.error("Failed to open popup", error);
+      }
+    }
+  }, [closeSidePanelIfNeeded]);
+
+  const openSidePanelView = useCallback(async () => {
+    if (!chrome?.sidePanel || !chrome?.tabs?.query) {
+      return;
+    }
+
+    try {
+      const tabs = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      const tabId = tabs?.[0]?.id;
+      if (typeof tabId === "number") {
+        lastActiveTabIdRef.current = tabId;
+        await chrome.sidePanel.open({ tabId });
+      } else {
+        await chrome.sidePanel.open({});
+      }
+    } catch (error) {
+      console.error("Failed to open side panel", error);
+    }
+
+    if (typeof window !== "undefined" && typeof window.close === "function") {
+      window.close();
+    }
+  }, []);
+
+  const handleCopyAddress = useCallback(() => {
+    if (!hasAddress || !navigator?.clipboard) return;
+    navigator.clipboard
+      .writeText(address)
+      .then(() => {
+        setCopied(true);
+        if (copyTimeoutRef.current) {
+          window.clearTimeout(copyTimeoutRef.current);
+        }
+        copyTimeoutRef.current = window.setTimeout(() => {
+          setCopied(false);
+        }, 2000);
+      })
+      .catch((error) => {
+        console.error("Failed to copy address", error);
+      });
+  }, [address, hasAddress]);
+
+  const handleToggleOpenMode = useCallback(async () => {
+    if (!chrome?.storage?.sync) {
+      return;
+    }
+
+    const nextValue = !openInPopup;
+    onModeChange?.(nextValue);
+
+    try {
+      await chrome.storage.sync.set({ openInPopup: nextValue });
+      await chrome.runtime.sendMessage({
+        type: "setOpenMode",
+        openInPopup: nextValue,
+      });
+      if (nextValue) {
+        await openPopupView();
+      } else {
+        await openSidePanelView();
+      }
+    } catch (error) {
+      console.error("Failed to toggle open mode", error);
+      onModeChange?.(!nextValue);
+    } finally {
+      setMenuOpen(false);
+    }
+  }, [openInPopup, onModeChange, openPopupView, openSidePanelView]);
+
+  const toggleMenu = useCallback(() => {
+    setMenuOpen((prev) => !prev);
+  }, []);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        className="w-9 h-9 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors"
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        onClick={toggleMenu}
+        ref={buttonRef}
+      >
+        <span className="material-symbols-outlined text-base">settings</span>
+      </button>
+
+      {menuOpen ? (
+        <div className={menuBaseClasses} ref={menuRef} role="menu">
+          <button
+            type="button"
+            className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${hasAddress ? "" : "hidden"}`}
+            onClick={handleCopyAddress}
+            title={address}
+            role="menuitem"
+          >
+            {copied ? "copied" : formatAddress(address)}
+          </button>
+          <button
+            type="button"
+            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-t border-gray-100"
+            onClick={handleToggleOpenMode}
+            role="menuitem"
+          >
+            {openInPopup ? "open in sidepanel" : "open in popup"}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
