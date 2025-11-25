@@ -1,18 +1,15 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: {
-    files: ["./src/**/*.{html,js}"],
-    // Safelist classes that are generated dynamically at runtime or built from JS
-    safelist: [
-      "text-tid-positive",
-      "text-tid-negative",
-      "text-tid-neutral",
-      "text-tid-muted",
-      "text-tid-text",
-      "bg-tid-bg-danger",
-      "bg-tid-bg-subtle",
-    ],
-  },
+  content: ["./src/**/*.{html,js,jsx}"],
+  safelist: [
+    "text-tid-positive",
+    "text-tid-negative",
+    "text-tid-neutral",
+    "text-tid-muted",
+    "text-tid-text",
+    "bg-tid-bg-danger",
+    "bg-tid-bg-subtle",
+  ],
   theme: {
     extend: {
       spacing: {

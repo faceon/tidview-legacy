@@ -6,7 +6,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 export default [
   js.configs.recommended,
   {
-    files: ["src/**/*.js"],
+    files: ["src/**/*.{js,jsx}"],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -40,7 +40,12 @@ export default [
     },
   },
   {
-    files: ["webpack.config.js", "src/common/config.js", "babel.config.js"],
+    files: [
+      "vite.config.js",
+      "tailwind.config.cjs",
+      "postcss.config.cjs",
+      "src/common/config.js",
+    ],
     languageOptions: {
       globals: {
         ...globals.node,

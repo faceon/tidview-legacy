@@ -8,9 +8,9 @@ import React, {
 import { createRoot } from "react-dom/client";
 import { parseNumber, formatCurrency } from "../common/format.js";
 import cfg from "../common/config.js";
-import PositionsList from "./component/positions-list.js";
-import SettingsButton from "./component/settings-button.js";
-import { adoptTailwind } from "./tailwind-shared.js";
+import PositionsList from "./component/positions-list.jsx";
+import SettingsButton from "./component/settings-button.jsx";
+import "./tailwind.css";
 
 function formatRefreshAgeLabel(valuesUpdatedAt, now = Date.now()) {
   if (typeof valuesUpdatedAt !== "number") {
@@ -597,7 +597,6 @@ function TidviewPortfolio() {
 
 const container = document.getElementById("root");
 if (container) {
-  adoptTailwind(document);
   const root = createRoot(container);
   root.render(<TidviewPortfolio />);
 }
