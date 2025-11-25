@@ -1,4 +1,4 @@
-import { formatBadge, formatNumber } from "../common/format.js";
+import { formatBadge } from "../common/format.js";
 import {
   fetchCashValue,
   fetchPositions,
@@ -61,9 +61,13 @@ async function applyOpenMode(openInPopup) {
 }
 
 async function refreshNow() {
-  const { address } = await chrome.storage.sync.get(["address"]);
-  if (!address || !cfg.ADDRESS_REGEX.test(address)) {
-    throw new Error("No valid 0x address set.");
+  const { address: rawAddress } = await chrome.storage.sync.get(["address"]);
+  const address = normalizeAddress(rawAddress);
+  if (!cfg.ADDRESS_REGEX.test(address)) {
+    const errorMessage =
+      "No valid 0x address set. Please provide one in settings.";
+    await surfaceAddressError(errorMessage);
+    return { success: false, error: errorMessage };
   }
 
   try {
@@ -129,4 +133,24 @@ async function refreshNow() {
 function updateBadge(text, title) {
   chrome.action.setBadgeText({ text });
   chrome.action.setTitle({ title });
+}
+
+function normalizeAddress(value) {
+  if (typeof value === "string") return value.trim();
+  if (value == null) return "";
+  return String(value).trim();
+}
+
+async function surfaceAddressError(errorMessage) {
+  await Promise.all([
+    chrome.storage.sync.set({
+      valuesError: errorMessage,
+      valuesUpdatedAt: Date.now(),
+    }),
+    chrome.storage.session.set({
+      positionsError: errorMessage,
+      positionsUpdatedAt: Date.now(),
+    }),
+  ]);
+  updateBadge("-", `Error: ${errorMessage}`);
 }
