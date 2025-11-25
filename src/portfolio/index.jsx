@@ -1,18 +1,47 @@
+// Ensure webpack loads dynamic chunks from inside the extension root (chrome-extension://)
+if (typeof chrome !== "undefined" && chrome?.runtime?.getURL) {
+  // eslint-disable-next-line no-underscore-dangle, camelcase
+  __webpack_public_path__ = chrome.runtime.getURL("");
+}
+
 import React, { useEffect, useMemo, useState, useRef } from "react";
+// Watch for chunk-load failures (happens when extension updated but runtime
+// still references old chunk names) and try a reload to recover gracefully.
+if (typeof window !== "undefined") {
+  window.addEventListener("error", (ev) => {
+    const msg = ev?.message || "";
+    if (/Loading chunk .* failed/.test(msg)) {
+      console.warn("Chunk load failed — reloading to recover", msg);
+      // reload without cache — best-effort to fetch the new chunk manifest
+      window.location.reload();
+    }
+  });
+
+  window.addEventListener("unhandledrejection", (ev) => {
+    const reason = ev?.reason || {};
+    if (reason && reason.name === "ChunkLoadError") {
+      console.warn("Unhandled chunk load error — reloading to recover", reason);
+      window.location.reload();
+    }
+  });
+}
 import { createRoot } from "react-dom/client";
-// tailwind.css is produced by build:css and reused by the shared helper
-import { adoptTailwind } from "./tailwind-shared.js";
+// tailwind.css is produced by build:css — import its raw string and inject
+// it into the document at runtime. webpack's asset/source rule returns
+// the CSS as a string when imported.
+import "./tailwind.css";
 import { parseNumber, formatCurrency } from "../common/format.js";
 import cfg from "../common/config.js";
-import PositionsList from "./components/PositionsList.jsx";
-import SettingsButton from "./components/SettingsButton.jsx";
+const PositionsList = React.lazy(
+  () => import("./components/PositionsList.jsx"),
+);
+const SettingsButton = React.lazy(
+  () => import("./components/SettingsButton.jsx"),
+);
 
 // Import Material Web elements used by the UI (they register custom elements)
-import "@material/web/iconButton/filled-icon-button.js";
-import "@material/web/iconButton/icon-button.js";
-import "@material/web/icon/icon.js";
-import "@material/web/menu/menu.js";
-import "@material/web/menu/menu-item.js";
+// material web imports moved to the components that use them so they can be
+// code-split and lazy-loaded (reduces initial bundle size)
 
 function useRefreshTicker(valuesUpdatedAt) {
   const [, setTick] = useState(0);
@@ -77,10 +106,8 @@ function App() {
   // tick while valuesUpdatedAt exists so computed labels update
   useRefreshTicker(valuesUpdatedAt);
 
-  // adopt global tailwind styles (re-uses the existing helper)
-  useEffect(() => {
-    adoptTailwind(document);
-  }, []);
+  // tailwind.css is bundled and injected by webpack's style-loader/css-loader
+  // via the top-level import `import "./tailwind.css";`
 
   // storage listener
   useEffect(() => {
@@ -418,26 +445,36 @@ function App() {
 
           <h3>Tidview</h3>
 
-          <md-icon-button onClick={() => location.reload()}>
-            <md-icon>restore_page</md-icon>
-          </md-icon-button>
+          <button
+            title="Reload"
+            onClick={() => location.reload()}
+            className="rounded p-1"
+          >
+            <span className="material-symbols-outlined">restore_page</span>
+          </button>
 
-          <md-filled-icon-button
+          <button
+            title="Refresh"
             onClick={handleRefresh}
             disabled={isBusy || !hasAddress}
+            className="rounded p-1 bg-slate-200 disabled:opacity-50"
           >
-            <md-icon>sync</md-icon>
-          </md-filled-icon-button>
+            <span className="material-symbols-outlined">sync</span>
+          </button>
 
           <span className="w-12 text-right text-xs text-gray-500">
             {typeof valuesUpdatedAt === "number" ? getRefreshAgeLabel() : ""}
           </span>
 
-          <SettingsButton
-            address={address}
-            openInPopup={openInPopup}
-            setOpenInPopup={setOpenInPopup}
-          />
+          <React.Suspense
+            fallback={<div className="text-sm text-tid-muted">Loading…</div>}
+          >
+            <SettingsButton
+              address={address}
+              openInPopup={openInPopup}
+              setOpenInPopup={setOpenInPopup}
+            />
+          </React.Suspense>
         </nav>
 
         <div className={`${hasAddress ? "hidden" : "flex items-center gap-2"}`}>
@@ -502,11 +539,17 @@ function App() {
       </header>
 
       <main>
-        <PositionsList
-          positions={positions}
-          loading={positionsLoading}
-          openMarket={openMarket}
-        />
+        <React.Suspense
+          fallback={
+            <div className="text-xs text-tid-muted">Loading positions…</div>
+          }
+        >
+          <PositionsList
+            positions={positions}
+            loading={positionsLoading}
+            openMarket={openMarket}
+          />
+        </React.Suspense>
       </main>
 
       <footer className="p-3 flex flex-col gap-1">
