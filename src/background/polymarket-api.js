@@ -20,23 +20,6 @@ async function fetchJson(url, context) {
   return res.json();
 }
 
-const toNumber = (value) => {
-  if (value == null) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-};
-
-export async function fetchPositionsValue(address) {
-  const url = `${API_BASE}/value?user=${encodeURIComponent(address)}`;
-  const data = await fetchJson(url, "Portfolio value request");
-  const value = Array.isArray(data) ? data[0]?.value : data?.value;
-  const numeric = toNumber(value);
-  if (numeric == null) {
-    throw new Error("Unexpected value response format");
-  }
-  return numeric;
-}
-
 export async function fetchPositions(address) {
   const url = `${API_BASE}/positions?user=${encodeURIComponent(address)}`;
   const data = await fetchJson(url, "Positions request");

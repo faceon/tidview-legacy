@@ -1,9 +1,5 @@
-import { formatBadge } from "../common/format.js";
-import {
-  fetchCashValue,
-  fetchPositions,
-  fetchPositionsValue,
-} from "./polymarket-api.js";
+import { formatBadge, parseNumber } from "../common/format.js";
+import { fetchCashValue, fetchPositions } from "./polymarket-api.js";
 import cfg from "../common/config.js";
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -116,7 +112,6 @@ async function refreshNow() {
 
   try {
     const results = await Promise.allSettled([
-      fetchPositionsValue(address),
       fetchCashValue(address),
       fetchPositions(address),
     ]);
@@ -131,9 +126,13 @@ async function refreshNow() {
       return result.value;
     };
 
-    const positionsValue = unwrap(results[0], "Positions Value");
-    const cashValue = unwrap(results[1], "Cash Value");
-    const positions = unwrap(results[2], "Positions");
+    const cashValue = unwrap(results[0], "Cash Value");
+    const positions = unwrap(results[1], "Positions");
+
+    const positionsValue = positions.reduce((sum, pos) => {
+      const val = parseNumber(pos?.currentValue);
+      return val != null ? sum + val : sum;
+    }, 0);
 
     await updatePortfolioState({
       positionsValue,
