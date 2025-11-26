@@ -10,7 +10,6 @@ import { parseNumber, formatCurrency } from "../common/format.js";
 import cfg from "../common/config.js";
 import PositionsList from "./components/PositionsList.jsx";
 import SettingButtons from "./components/SettingButtons.jsx";
-import "../styles/tailwind.css";
 
 function formatRefreshAgeLabel(valuesUpdatedAt, now = Date.now()) {
   if (typeof valuesUpdatedAt !== "number") {
