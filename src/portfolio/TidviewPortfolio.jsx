@@ -72,7 +72,6 @@ function TidviewPortfolio() {
   const [positionsLoading, setPositionsLoading] = useState(false);
   const [positionsUpdatedAt, setPositionsUpdatedAt] = useState(null);
   const [positionsValue, setPositionsValue] = useState(null);
-  const [positionsError, setPositionsError] = useState("");
   const [cashValue, setCashValue] = useState(null);
   const [openInPopup, setOpenInPopup] = useState(false);
   const [nowTimestamp, setNowTimestamp] = useState(Date.now());
@@ -150,15 +149,6 @@ function TidviewPortfolio() {
       touched = true;
     }
 
-    if (Object.prototype.hasOwnProperty.call(state, "positionsError")) {
-      const errorValue = state.positionsError;
-      setPositionsError(errorValue ? String(errorValue) : "");
-      if (!silent && errorValue) {
-        setStatusMessage("");
-      }
-      touched = true;
-    }
-
     if (touched) {
       setPositionsLoading(false);
     }
@@ -217,7 +207,6 @@ function TidviewPortfolio() {
           {
             positions: sessionData?.positions,
             positionsUpdatedAt: sessionData?.positionsUpdatedAt,
-            positionsError: sessionData?.positionsError,
           },
           { silent: true },
         );
@@ -260,7 +249,6 @@ function TidviewPortfolio() {
             setPositions([]);
             setPositionsValue(null);
             setPositionsUpdatedAt(null);
-            setPositionsError("");
             setPositionsLoading(true);
           }
 
@@ -268,7 +256,6 @@ function TidviewPortfolio() {
             setPositions([]);
             setPositionsValue(null);
             setPositionsUpdatedAt(null);
-            setPositionsError("");
             setPositionsLoading(false);
           }
         }
@@ -314,9 +301,6 @@ function TidviewPortfolio() {
         ) {
           sessionUpdate.positionsUpdatedAt =
             changes.positionsUpdatedAt.newValue;
-        }
-        if (Object.prototype.hasOwnProperty.call(changes, "positionsError")) {
-          sessionUpdate.positionsError = changes.positionsError.newValue;
         }
         if (Object.keys(sessionUpdate).length) {
           applyPositionsState(sessionUpdate);
@@ -385,7 +369,6 @@ function TidviewPortfolio() {
     setValuesError("");
     setStatusMessage("Saved. Refreshing...");
     setPositionsLoading(true);
-    setPositionsError("");
     try {
       await chrome.storage.sync.set({ wallet: trimmed });
       setWallet(trimmed);
@@ -416,7 +399,6 @@ function TidviewPortfolio() {
     setValuesError("");
     setStatusMessage("Refreshing...");
     setPositionsLoading(true);
-    setPositionsError("");
     try {
       setWallet(trimmed);
       const refreshOk = await requestRefresh({ recordTimestamp: true });
@@ -576,11 +558,6 @@ function TidviewPortfolio() {
       </main>
 
       <footer className="p-3 flex flex-col gap-1">
-        {positionsError ? (
-          <div className="p-3 rounded-md bg-tid-bg-danger text-tid-negative text-xs">
-            {positionsError}
-          </div>
-        ) : null}
         {statusMessage ? (
           <div className="text-xs text-tid-muted">{statusMessage}</div>
         ) : null}

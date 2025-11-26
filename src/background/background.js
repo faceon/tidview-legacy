@@ -71,13 +71,14 @@ async function updatePortfolioState({
 
   const sessionData = {
     positionsUpdatedAt: timestamp,
-    positionsError: error,
   };
 
-  const positionsValue = positions.reduce((sum, pos) => {
-    const val = parseNumber(pos?.currentValue);
-    return val != null ? sum + val : sum;
-  }, 0);
+  const positionsValue = Array.isArray(positions)
+    ? positions.reduce((sum, pos) => {
+        const val = parseNumber(pos?.currentValue);
+        return val != null ? sum + val : sum;
+      }, 0)
+    : 0;
 
   if (!isError) {
     syncData.cashValue = cashValue;
