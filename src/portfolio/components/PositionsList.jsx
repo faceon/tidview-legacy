@@ -6,20 +6,19 @@ import {
   formatNumber,
   formatDate,
   trendClass,
-  parseNumber,
 } from "../../common/format.js";
 
 function buildSummary(positions) {
   const totalCurrentValue = positions.reduce(
-    (sum, pos) => sum + (parseNumber(pos.currentValue) ?? 0),
+    (sum, pos) => sum + (pos.currentValue ?? 0),
     0,
   );
   const totalCashPnl = positions.reduce(
-    (sum, pos) => sum + (parseNumber(pos.cashPnl) ?? 0),
+    (sum, pos) => sum + (pos.cashPnl ?? 0),
     0,
   );
   const totalInitialValue = positions.reduce(
-    (sum, pos) => sum + (parseNumber(pos.initialValue) ?? 0),
+    (sum, pos) => sum + (pos.initialValue ?? 0),
     0,
   );
   const totalPercent =

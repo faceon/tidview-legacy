@@ -56,6 +56,21 @@ async function applyOpenMode(openInPopup) {
   }
 }
 
+function sanitizePosition(pos) {
+  if (!pos) return null;
+  return {
+    ...pos,
+    currentValue: parseNumber(pos.currentValue),
+    cashPnl: parseNumber(pos.cashPnl),
+    percentPnl: parseNumber(pos.percentPnl),
+    size: parseNumber(pos.size),
+    avgPrice: parseNumber(pos.avgPrice),
+    curPrice: parseNumber(pos.curPrice),
+    initialValue: parseNumber(pos.initialValue),
+    realizedPnl: parseNumber(pos.realizedPnl),
+  };
+}
+
 async function updateStorageAndBadge({
   cashValue = null,
   positions = null,
@@ -73,17 +88,20 @@ async function updateStorageAndBadge({
     positionsUpdatedAt: timestamp,
   };
 
-  const positionsValue = Array.isArray(positions)
-    ? positions.reduce((sum, pos) => {
-        const val = parseNumber(pos?.currentValue);
-        return val != null ? sum + val : sum;
-      }, 0)
-    : 0;
+  // Sanitize positions to ensure numbers are stored
+  const sanitizedPositions = Array.isArray(positions)
+    ? positions.map(sanitizePosition).filter(Boolean)
+    : [];
+
+  const positionsValue = sanitizedPositions.reduce((sum, pos) => {
+    const val = pos?.currentValue;
+    return val != null ? sum + val : sum;
+  }, 0);
 
   if (!isError) {
-    syncData.cashValue = cashValue;
+    syncData.cashValue = parseNumber(cashValue); // Ensure cashValue is also a number
     syncData.positionsValue = positionsValue;
-    sessionData.positions = positions;
+    sessionData.positions = sanitizedPositions;
   }
 
   await Promise.all([

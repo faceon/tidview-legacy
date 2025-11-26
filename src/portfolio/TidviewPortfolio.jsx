@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import { createRoot } from "react-dom/client";
-import { parseNumber, formatCurrency } from "../common/format.js";
+import { formatCurrency } from "../common/format.js";
 import cfg from "../common/config.js";
 import PositionsList from "./components/PositionsList.jsx";
 import SettingButtons from "./components/SettingButtons.jsx";
@@ -38,16 +38,16 @@ function normalizePosition(raw) {
     id,
     title: raw?.title || raw?.slug || "Unnamed market",
     outcome: raw?.outcome || "",
-    currentValue: parseNumber(raw?.currentValue),
-    cashPnl: parseNumber(raw?.cashPnl),
-    percentPnl: parseNumber(raw?.percentPnl),
-    size: parseNumber(raw?.size),
-    avgPrice: parseNumber(raw?.avgPrice),
-    curPrice: parseNumber(raw?.curPrice),
+    currentValue: raw?.currentValue,
+    cashPnl: raw?.cashPnl,
+    percentPnl: raw?.percentPnl,
+    size: raw?.size,
+    avgPrice: raw?.avgPrice,
+    curPrice: raw?.curPrice,
     endDate: raw?.endDate || "",
     icon: raw?.icon || "",
-    initialValue: parseNumber(raw?.initialValue),
-    realizedPnl: parseNumber(raw?.realizedPnl),
+    initialValue: raw?.initialValue,
+    realizedPnl: raw?.realizedPnl,
     slug: raw?.slug || "",
     eventSlug: raw?.eventSlug || "",
   };
@@ -125,7 +125,7 @@ function TidviewPortfolio() {
         );
         setPositions(normalized);
         const computedValue = normalized.reduce((sum, pos) => {
-          const value = parseNumber(pos?.currentValue);
+          const value = pos?.currentValue;
           return value != null ? sum + value : sum;
         }, 0);
         setPositionsValue(
@@ -185,18 +185,16 @@ function TidviewPortfolio() {
         const parsedValuesUpdatedAt =
           typeof storedValuesUpdatedAt === "number"
             ? storedValuesUpdatedAt
-            : parseNumber(storedValuesUpdatedAt);
+            : null;
         setValuesUpdatedAt(parsedValuesUpdatedAt ?? null);
         setValuesError(storedValuesError ?? "");
         setPositionsValue(
           typeof storedPositionsValue === "number"
             ? storedPositionsValue
-            : parseNumber(storedPositionsValue),
+            : null,
         );
         setCashValue(
-          typeof storedCashValue === "number"
-            ? storedCashValue
-            : parseNumber(storedCashValue),
+          typeof storedCashValue === "number" ? storedCashValue : null,
         );
         setOpenInPopup(Boolean(storedOpenInPopup));
 
@@ -261,16 +259,16 @@ function TidviewPortfolio() {
         }
 
         if (Object.prototype.hasOwnProperty.call(changes, "positionsValue")) {
-          setPositionsValue(parseNumber(changes.positionsValue.newValue));
+          setPositionsValue(changes.positionsValue.newValue);
         }
 
         if (Object.prototype.hasOwnProperty.call(changes, "cashValue")) {
-          setCashValue(parseNumber(changes.cashValue.newValue));
+          setCashValue(changes.cashValue.newValue);
         }
 
         if (Object.prototype.hasOwnProperty.call(changes, "valuesUpdatedAt")) {
           const raw = changes.valuesUpdatedAt.newValue;
-          const parsed = typeof raw === "number" ? raw : parseNumber(raw);
+          const parsed = typeof raw === "number" ? raw : null;
           setValuesUpdatedAt(parsed ?? null);
           nextValuesUpdatedAt = parsed ?? null;
         }
@@ -430,8 +428,8 @@ function TidviewPortfolio() {
     setOpenInPopup(nextValue);
   }, []);
 
-  const positionsValueSafe = parseNumber(positionsValue);
-  const cashValueSafe = parseNumber(cashValue);
+  const positionsValueSafe = positionsValue;
+  const cashValueSafe = cashValue;
   const totalValue =
     positionsValueSafe == null && cashValueSafe == null
       ? null
