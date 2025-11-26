@@ -60,14 +60,58 @@ async function applyOpenMode(openInPopup) {
   }
 }
 
+async function updatePortfolioState({
+  positionsValue = null,
+  cashValue = null,
+  positions = null,
+  error = null,
+} = {}) {
+  const timestamp = Date.now();
+  const isError = Boolean(error);
+
+  const syncData = {
+    valuesUpdatedAt: timestamp,
+    valuesError: error,
+  };
+
+  const sessionData = {
+    positionsUpdatedAt: timestamp,
+    positionsError: error,
+  };
+
+  if (!isError) {
+    syncData.positionsValue = positionsValue;
+    syncData.cashValue = cashValue;
+    sessionData.positions = positions;
+  }
+
+  await Promise.all([
+    chrome.storage.sync.set(syncData),
+    chrome.storage.session.set(sessionData),
+  ]);
+
+  if (isError) {
+    updateBadge("-", `Error: ${error}`);
+  } else {
+    const safePosValue = Number(positionsValue) || 0;
+    const safeCashValue = Number(cashValue) || 0;
+    const totalValue = safePosValue + safeCashValue;
+
+    updateBadge(
+      formatBadge(totalValue),
+      `Portfolio Total: $${totalValue.toLocaleString()}`,
+    );
+  }
+}
+
 async function refreshNow() {
   const { address: rawAddress } = await chrome.storage.sync.get(["address"]);
   const address = normalizeAddress(rawAddress);
+
   if (!cfg.ADDRESS_REGEX.test(address)) {
-    const errorMessage =
-      "No valid 0x address set. Please provide one in settings.";
-    await surfaceAddressError(errorMessage);
-    return { success: false, error: errorMessage };
+    const error = "No valid 0x address set. Please provide one in settings.";
+    await updatePortfolioState({ error });
+    return { success: false, error };
   }
 
   try {
@@ -77,54 +121,32 @@ async function refreshNow() {
       fetchPositions(address),
     ]);
 
-    const [positionsValue, cashValue, positions] = results.map((result) =>
-      result.status === "fulfilled"
-        ? result.value
-        : {
-            error: result.reason?.message || String(result.reason) || null,
-          },
-    );
+    const unwrap = (result, name) => {
+      if (result.status === "rejected") {
+        throw new Error(result.reason?.message || String(result.reason));
+      }
+      if (result.value && result.value.error) {
+        throw new Error(`${name}: ${result.value.error}`);
+      }
+      return result.value;
+    };
 
-    if (positionsValue.error && cashValue.error) {
-      throw new Error([positionsValue.error, cashValue.error].join(" ; "));
-    }
+    const positionsValue = unwrap(results[0], "Positions Value");
+    const cashValue = unwrap(results[1], "Cash Value");
+    const positions = unwrap(results[2], "Positions");
 
-    // TODO: validate values and positions format
-    await Promise.all([
-      chrome.storage.sync.set({
-        positionsValue,
-        cashValue,
-        valuesUpdatedAt: Date.now(),
-        valuesError: positionsValue.error || cashValue.error || null,
-      }),
-      chrome.storage.session.set({
-        positions,
-        positionsUpdatedAt: Date.now(),
-        positionsError: positions.error || null,
-      }),
-    ]);
-
-    const totalValue = Number(positionsValue) + Number(cashValue);
-
-    updateBadge(
-      formatBadge(totalValue),
-      `Portfolio Total: $${Number(totalValue).toLocaleString()}`,
-    );
+    await updatePortfolioState({
+      positionsValue,
+      cashValue,
+      positions,
+    });
 
     return { success: true };
   } catch (error) {
     const errorMessage = error?.message || String(error) || "Unknown error";
-    await Promise.all([
-      chrome.storage.sync.set({
-        valuesError: errorMessage,
-        valuesUpdatedAt: Date.now(),
-      }),
-      chrome.storage.session.set({
-        positionsError: errorMessage,
-        positionsUpdatedAt: Date.now(),
-      }),
-    ]);
-    updateBadge("-", `Error fetching data: ${errorMessage}`);
+    console.error("Refresh failed:", error);
+
+    await updatePortfolioState({ error: errorMessage });
 
     return { success: false, error: errorMessage };
   }
@@ -139,18 +161,4 @@ function normalizeAddress(value) {
   if (typeof value === "string") return value.trim();
   if (value == null) return "";
   return String(value).trim();
-}
-
-async function surfaceAddressError(errorMessage) {
-  await Promise.all([
-    chrome.storage.sync.set({
-      valuesError: errorMessage,
-      valuesUpdatedAt: Date.now(),
-    }),
-    chrome.storage.session.set({
-      positionsError: errorMessage,
-      positionsUpdatedAt: Date.now(),
-    }),
-  ]);
-  updateBadge("-", `Error: ${errorMessage}`);
 }
