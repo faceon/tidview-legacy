@@ -15,7 +15,7 @@
 
 ## Portfolio UI (`src/portfolio/`)
 
-- Entrypoint is `portfolio.html` → `<tidview-portfolio>` defined in `portfolio.js`; `positions-list.js` renders a summarized, sortable list using Lit + Material Web components.
+- Entrypoint is `index.html` → `TidviewPortfolio.jsx` renders the React `<tidview-portfolio>` UI after importing shared Tailwind styles from `src/common/tailwind.css`; `PositionsList.jsx` drives the sortable list and helper components such as `SettingsButton.jsx` provide the menu interactions.
 - The component mirrors extension state via `chrome.storage.sync/session` reads on load plus `chrome.storage.onChanged` listeners, so any background writes instantly update the UI.
 - User input (wallet address) is stored in sync storage only after passing `cfg.ADDRESS_REGEX`; saving/refreshing fire `chrome.runtime.sendMessage({ type: "refresh" })` and optimistically toggle `isBusy`/`positionsLoading` flags.
 - Positions are normalized (`normalizePosition`) and sorted by `currentValue`, with derived totals (current value, cash PnL, percent PnL) shown in both the main value card and the positions summary.

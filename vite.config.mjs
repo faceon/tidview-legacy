@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => ({
     target: "chrome121",
     rollupOptions: {
       input: {
-        portfolio: path.resolve(rootDir, "portfolio.html"),
+        portfolio: path.resolve(rootDir, "index.html"),
         background: path.resolve(rootDir, "background/background.js"),
       },
       output: {

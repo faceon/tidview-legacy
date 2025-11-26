@@ -8,9 +8,9 @@ import React, {
 import { createRoot } from "react-dom/client";
 import { parseNumber, formatCurrency } from "../common/format.js";
 import cfg from "../common/config.js";
-import PositionsList from "./components/positions-list.js";
-import SettingsButton from "./components/settings-button.js";
-import "./tailwind.css";
+import PositionsList from "./components/PositionsList.jsx";
+import SettingButtons from "./components/SettingButtons.jsx";
+import "../common/tailwind.css";
 
 function formatRefreshAgeLabel(valuesUpdatedAt, now = Date.now()) {
   if (typeof valuesUpdatedAt !== "number") {
@@ -495,7 +495,7 @@ function TidviewPortfolio() {
           <span className="w-12 text-right text-xs text-gray-500">
             {refreshAgeLabel}
           </span>
-          <SettingsButton
+          <SettingButtons
             address={address}
             openInPopup={openInPopup}
             onModeChange={handleOpenModeChange}

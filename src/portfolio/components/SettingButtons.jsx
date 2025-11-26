@@ -5,7 +5,7 @@ import cfg from "../../common/config.js";
 const menuBaseClasses =
   "absolute right-0 mt-2 w-48 rounded-md border border-gray-200 bg-white shadow-lg z-10";
 
-export default function SettingsButton({ address, openInPopup, onModeChange }) {
+export default function SettingButtons({ address, openInPopup, onModeChange }) {
   const hasAddress = cfg.ADDRESS_REGEX.test(address);
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
