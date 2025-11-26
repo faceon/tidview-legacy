@@ -10,15 +10,15 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.alarms.clearAll(() => {
     chrome.alarms.create("poll", { periodInMinutes: cfg.POLL_MINUTES });
   });
-  refreshNow();
+  fetchAndUpdateData();
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm?.name === "poll") refreshNow();
+  if (alarm?.name === "poll") fetchAndUpdateData();
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg?.type === "refresh") refreshNow().then(sendResponse);
+  if (msg?.type === "refresh") fetchAndUpdateData().then(sendResponse);
   if (msg?.type === "setOpenMode") {
     applyOpenMode(msg.openInPopup)
       .then(() => sendResponse({ success: true }))
@@ -34,7 +34,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== "sync") return;
-  if ("wallet" in changes) refreshNow();
+  if ("wallet" in changes) fetchAndUpdateData();
   if ("openInPopup" in changes) applyOpenMode(changes.openInPopup.newValue);
 });
 
@@ -56,7 +56,7 @@ async function applyOpenMode(openInPopup) {
   }
 }
 
-async function updatePortfolioState({
+async function updateStorageAndBadge({
   cashValue = null,
   positions = null,
   error = null,
@@ -105,12 +105,12 @@ async function updatePortfolioState({
   }
 }
 
-async function refreshNow() {
+async function fetchAndUpdateData() {
   const { wallet } = await chrome.storage.sync.get(["wallet"]);
 
   if (!cfg.WALLET_REGEX.test(wallet)) {
     const error = "No valid 0x wallet set. Please provide one in settings.";
-    await updatePortfolioState({ error });
+    await updateStorageAndBadge({ error });
     return { success: false, error };
   }
 
@@ -133,7 +133,7 @@ async function refreshNow() {
     const cashValue = unwrap(results[0], "Cash Value");
     const positions = unwrap(results[1], "Positions");
 
-    await updatePortfolioState({
+    await updateStorageAndBadge({
       cashValue,
       positions,
     });
@@ -143,7 +143,7 @@ async function refreshNow() {
     const errorMessage = error?.message || String(error) || "Unknown error";
     console.error("Refresh failed:", error);
 
-    await updatePortfolioState({ error: errorMessage });
+    await updateStorageAndBadge({ error: errorMessage });
 
     return { success: false, error: errorMessage };
   }
