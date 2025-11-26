@@ -8,8 +8,8 @@ import React, {
 import { createRoot } from "react-dom/client";
 import { parseNumber, formatCurrency } from "../common/format.js";
 import cfg from "../common/config.js";
-import PositionsList from "./components/positions-list.jsx";
-import SettingsButton from "./components/settings-button.jsx";
+import PositionsList from "./components/positions-list.js";
+import SettingsButton from "./components/settings-button.js";
 import "./tailwind.css";
 
 function formatRefreshAgeLabel(valuesUpdatedAt, now = Date.now()) {
