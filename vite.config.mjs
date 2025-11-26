@@ -1,7 +1,10 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { fileURLToPath } from "url";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "src");
 
 export default defineConfig(({ mode }) => ({
@@ -18,15 +21,7 @@ export default defineConfig(({ mode }) => ({
         background: path.resolve(rootDir, "background/background.js"),
       },
       output: {
-        entryFileNames: (chunk) => {
-          if (chunk.name === "background") {
-            return "background.js";
-          }
-          if (chunk.name === "portfolio") {
-            return "portfolio.js";
-          }
-          return "assets/[name].js";
-        },
+        entryFileNames: "[name].js",
         chunkFileNames: "chunks/[name].js",
         assetFileNames: "assets/[name][extname]",
       },
