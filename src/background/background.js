@@ -57,7 +57,6 @@ async function applyOpenMode(openInPopup) {
 }
 
 async function updatePortfolioState({
-  positionsValue = null,
   cashValue = null,
   positions = null,
   error = null,
@@ -75,9 +74,14 @@ async function updatePortfolioState({
     positionsError: error,
   };
 
+  const positionsValue = positions.reduce((sum, pos) => {
+    const val = parseNumber(pos?.currentValue);
+    return val != null ? sum + val : sum;
+  }, 0);
+
   if (!isError) {
-    syncData.positionsValue = positionsValue;
     syncData.cashValue = cashValue;
+    syncData.positionsValue = positionsValue;
     sessionData.positions = positions;
   }
 
@@ -101,8 +105,7 @@ async function updatePortfolioState({
 }
 
 async function refreshNow() {
-  const { wallet: rawWallet } = await chrome.storage.sync.get(["wallet"]);
-  const wallet = normalizeWallet(rawWallet);
+  const { wallet } = await chrome.storage.sync.get(["wallet"]);
 
   if (!cfg.WALLET_REGEX.test(wallet)) {
     const error = "No valid 0x wallet set. Please provide one in settings.";
@@ -129,13 +132,7 @@ async function refreshNow() {
     const cashValue = unwrap(results[0], "Cash Value");
     const positions = unwrap(results[1], "Positions");
 
-    const positionsValue = positions.reduce((sum, pos) => {
-      const val = parseNumber(pos?.currentValue);
-      return val != null ? sum + val : sum;
-    }, 0);
-
     await updatePortfolioState({
-      positionsValue,
       cashValue,
       positions,
     });
@@ -154,10 +151,4 @@ async function refreshNow() {
 function updateBadge(text, title) {
   chrome.action.setBadgeText({ text });
   chrome.action.setTitle({ title });
-}
-
-function normalizeWallet(value) {
-  if (typeof value === "string") return value.trim();
-  if (value == null) return "";
-  return String(value).trim();
 }
