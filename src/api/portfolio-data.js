@@ -56,17 +56,17 @@ export async function fetchCashValue(proxyWallet) {
     throw new Error("Invalid Polygon RPC response");
   }
 
-  let balance;
+  let cashValue;
   try {
     const raw = BigInt(hexValue);
-    balance = Number(raw) / 10 ** USDC_DECIMALS;
+    cashValue = Number(raw) / 10 ** USDC_DECIMALS;
   } catch (error) {
-    throw new Error("Failed to parse USDC balance");
+    throw new Error("Failed to parse USDC value");
   }
 
-  if (!Number.isFinite(balance)) {
-    throw new Error("USDC balance is not a finite number");
+  if (!Number.isFinite(cashValue)) {
+    throw new Error("USDC value is not a finite number");
   }
 
-  return balance;
+  return cashValue;
 }
