@@ -34,7 +34,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== "sync") return;
-  if ("address" in changes) refreshNow();
+  if ("wallet" in changes) refreshNow();
   if ("openInPopup" in changes) applyOpenMode(changes.openInPopup.newValue);
 });
 
@@ -101,19 +101,19 @@ async function updatePortfolioState({
 }
 
 async function refreshNow() {
-  const { address: rawAddress } = await chrome.storage.sync.get(["address"]);
-  const address = normalizeAddress(rawAddress);
+  const { wallet: rawWallet } = await chrome.storage.sync.get(["wallet"]);
+  const wallet = normalizeWallet(rawWallet);
 
-  if (!cfg.ADDRESS_REGEX.test(address)) {
-    const error = "No valid 0x address set. Please provide one in settings.";
+  if (!cfg.WALLET_REGEX.test(wallet)) {
+    const error = "No valid 0x wallet set. Please provide one in settings.";
     await updatePortfolioState({ error });
     return { success: false, error };
   }
 
   try {
     const results = await Promise.allSettled([
-      fetchCashValue(address),
-      fetchPositions(address),
+      fetchCashValue(wallet),
+      fetchPositions(wallet),
     ]);
 
     const unwrap = (result, name) => {
@@ -156,7 +156,7 @@ function updateBadge(text, title) {
   chrome.action.setTitle({ title });
 }
 
-function normalizeAddress(value) {
+function normalizeWallet(value) {
   if (typeof value === "string") return value.trim();
   if (value == null) return "";
   return String(value).trim();

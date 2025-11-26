@@ -145,7 +145,7 @@ export default function PositionsList({ positions, loading, openMarket }) {
     if (!safePositions.length) {
       return (
         <div className="text-xs text-tid-muted">
-          No positions found for this address.
+          No positions found for this wallet.
         </div>
       );
     }

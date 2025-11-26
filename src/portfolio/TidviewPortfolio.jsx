@@ -62,8 +62,8 @@ function useLatest(value) {
 }
 
 function TidviewPortfolio() {
-  const [address, setAddress] = useState("");
-  const [hasAddress, setHasAddress] = useState(false);
+  const [wallet, setWallet] = useState("");
+  const [hasWallet, setHasWallet] = useState(false);
   const [valuesUpdatedAt, setValuesUpdatedAt] = useState(null);
   const [valuesError, setValuesError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
@@ -77,7 +77,7 @@ function TidviewPortfolio() {
   const [openInPopup, setOpenInPopup] = useState(false);
   const [nowTimestamp, setNowTimestamp] = useState(Date.now());
 
-  const addressRef = useLatest(address);
+  const walletRef = useLatest(wallet);
   const valuesErrorRef = useLatest(valuesError);
   const valuesUpdatedAtRef = useLatest(valuesUpdatedAt);
 
@@ -179,7 +179,7 @@ function TidviewPortfolio() {
         if (cancelled) return;
 
         const {
-          address: storedAddress,
+          wallet: storedWallet,
           valuesUpdatedAt: storedValuesUpdatedAt,
           valuesError: storedValuesError,
           positionsValue: storedPositionsValue,
@@ -187,11 +187,11 @@ function TidviewPortfolio() {
           openInPopup: storedOpenInPopup,
         } = syncData || {};
 
-        const nextAddress =
-          typeof storedAddress === "string" ? storedAddress.trim() : "";
-        const valid = cfg.ADDRESS_REGEX.test(nextAddress);
-        setAddress(nextAddress);
-        setHasAddress(valid);
+        const nextWallet =
+          typeof storedWallet === "string" ? storedWallet.trim() : "";
+        const valid = cfg.WALLET_REGEX.test(nextWallet);
+        setWallet(nextWallet);
+        setHasWallet(valid);
         const parsedValuesUpdatedAt =
           typeof storedValuesUpdatedAt === "number"
             ? storedValuesUpdatedAt
@@ -247,16 +247,16 @@ function TidviewPortfolio() {
         let nextValuesError = valuesErrorRef.current;
         let nextValuesUpdatedAt = valuesUpdatedAtRef.current;
 
-        if (Object.prototype.hasOwnProperty.call(changes, "address")) {
-          const newAddressRaw = changes.address.newValue;
-          const newAddress =
-            typeof newAddressRaw === "string" ? newAddressRaw.trim() : "";
-          const previousAddress = addressRef.current;
-          const valid = cfg.ADDRESS_REGEX.test(newAddress);
-          setAddress(newAddress);
-          setHasAddress(valid);
+        if (Object.prototype.hasOwnProperty.call(changes, "wallet")) {
+          const newWalletRaw = changes.wallet.newValue;
+          const newWallet =
+            typeof newWalletRaw === "string" ? newWalletRaw.trim() : "";
+          const previousWallet = walletRef.current;
+          const valid = cfg.WALLET_REGEX.test(newWallet);
+          setWallet(newWallet);
+          setHasWallet(valid);
 
-          if (valid && newAddress !== previousAddress) {
+          if (valid && newWallet !== previousWallet) {
             setPositions([]);
             setPositionsValue(null);
             setPositionsUpdatedAt(null);
@@ -329,7 +329,7 @@ function TidviewPortfolio() {
       chrome.storage.onChanged.removeListener(handleStorageChange);
     };
   }, [
-    addressRef,
+    walletRef,
     applyPositionsState,
     updateStatusFromState,
     valuesErrorRef,
@@ -370,13 +370,13 @@ function TidviewPortfolio() {
   );
 
   const handleInput = useCallback((event) => {
-    setAddress(event.target.value);
+    setWallet(event.target.value);
   }, []);
 
   const handleSave = useCallback(async () => {
-    const trimmed = address.trim();
-    if (!cfg.ADDRESS_REGEX.test(trimmed)) {
-      setValuesError("Please enter a valid 0x address.");
+    const trimmed = wallet.trim();
+    if (!cfg.WALLET_REGEX.test(trimmed)) {
+      setValuesError("Please enter a valid 0x wallet.");
       setStatusMessage("");
       return;
     }
@@ -387,27 +387,27 @@ function TidviewPortfolio() {
     setPositionsLoading(true);
     setPositionsError("");
     try {
-      await chrome.storage.sync.set({ address: trimmed });
-      setAddress(trimmed);
-      setHasAddress(true);
+      await chrome.storage.sync.set({ wallet: trimmed });
+      setWallet(trimmed);
+      setHasWallet(true);
       const refreshOk = await requestRefresh({ recordTimestamp: true });
       if (refreshOk) {
         setStatusMessage(`Refreshed at ${new Date().toLocaleString()}`);
       }
     } catch (error) {
-      console.error("Failed to save address", error);
-      setValuesError(error?.message || "Failed to save address.");
+      console.error("Failed to save wallet", error);
+      setValuesError(error?.message || "Failed to save wallet.");
       setStatusMessage("");
       setPositionsLoading(false);
     } finally {
       setIsBusy(false);
     }
-  }, [address, requestRefresh]);
+  }, [wallet, requestRefresh]);
 
   const handleRefresh = useCallback(async () => {
-    const trimmed = address.trim();
-    if (!cfg.ADDRESS_REGEX.test(trimmed)) {
-      setValuesError("Please enter a valid 0x address.");
+    const trimmed = wallet.trim();
+    if (!cfg.WALLET_REGEX.test(trimmed)) {
+      setValuesError("Please enter a valid 0x wallet.");
       setStatusMessage("");
       return;
     }
@@ -418,7 +418,7 @@ function TidviewPortfolio() {
     setPositionsLoading(true);
     setPositionsError("");
     try {
-      setAddress(trimmed);
+      setWallet(trimmed);
       const refreshOk = await requestRefresh({ recordTimestamp: true });
       if (refreshOk) {
         setStatusMessage(`Refreshed at ${new Date().toLocaleString()}`);
@@ -431,7 +431,7 @@ function TidviewPortfolio() {
     } finally {
       setIsBusy(false);
     }
-  }, [address, requestRefresh]);
+  }, [wallet, requestRefresh]);
 
   const openMarket = useCallback((slug, fallbackSlug) => {
     const finalSlug = slug || fallbackSlug;
@@ -486,7 +486,7 @@ function TidviewPortfolio() {
             type="button"
             className="w-9 h-9 rounded-full flex items-center justify-center text-white bg-slate-900 disabled:bg-slate-400"
             onClick={handleRefresh}
-            disabled={isBusy || !hasAddress}
+            disabled={isBusy || !hasWallet}
             aria-label="Refresh portfolio"
           >
             <span className="material-symbols-outlined text-base">sync</span>
@@ -495,24 +495,24 @@ function TidviewPortfolio() {
             {refreshAgeLabel}
           </span>
           <SettingButtons
-            address={address}
+            wallet={wallet}
             openInPopup={openInPopup}
             onModeChange={handleOpenModeChange}
           />
         </nav>
 
-        {!hasAddress ? (
+        {!hasWallet ? (
           <div className="flex items-center gap-2 mt-3 flex-wrap">
-            <label className="text-sm text-tid-muted" htmlFor="address">
-              Your 0x address
+            <label className="text-sm text-tid-muted" htmlFor="wallet">
+              Your wallet
             </label>
             <input
               className="border border-gray-200 rounded px-2 py-1 text-sm flex-1 min-w-[200px]"
-              id="address"
+              id="wallet"
               type="text"
               placeholder="0x...40 hex chars"
               autoComplete="off"
-              value={address}
+              value={wallet}
               onChange={handleInput}
             />
             <button

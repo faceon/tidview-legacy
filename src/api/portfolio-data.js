@@ -12,8 +12,8 @@ async function fetchJson(url) {
   return res.json();
 }
 
-export async function fetchPositions(proxyWallet) {
-  const url = `${POLYMARKET_API}/positions?user=${encodeURIComponent(proxyWallet)}`;
+export async function fetchPositions(wallet) {
+  const url = `${POLYMARKET_API}/positions?user=${encodeURIComponent(wallet)}`;
   const data = await fetchJson(url);
   if (!Array.isArray(data)) {
     throw new Error("Unexpected positions response format");
@@ -21,9 +21,9 @@ export async function fetchPositions(proxyWallet) {
   return data;
 }
 
-export async function fetchCashValue(proxyWallet) {
-  const addressNoPrefix = proxyWallet.trim().toLowerCase().replace(/^0x/, "");
-  const data = ERC20_BALANCE_OF_SELECTOR + addressNoPrefix.padStart(64, "0");
+export async function fetchCashValue(wallet) {
+  const walletNoPrefix = wallet.trim().toLowerCase().replace(/^0x/, "");
+  const data = ERC20_BALANCE_OF_SELECTOR + walletNoPrefix.padStart(64, "0");
 
   const res = await fetch(POLYGON_API, {
     method: "POST",

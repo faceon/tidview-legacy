@@ -85,11 +85,11 @@ export const ensurePositiveInteger = (value, fallback = 1) => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
 
-export const formatAddress = (address) => {
-  if (typeof address !== "string") {
+export const formatWallet = (wallet) => {
+  if (typeof wallet !== "string") {
     return "";
   }
-  const trimmed = address.trim();
+  const trimmed = wallet.trim();
   if (trimmed.length <= 12) {
     return trimmed;
   }

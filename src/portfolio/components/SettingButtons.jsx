@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { formatAddress } from "../../common/format.js";
+import { formatWallet } from "../../common/format.js";
 import cfg from "../../common/config.js";
 
 const menuBaseClasses =
   "absolute right-0 mt-2 w-48 rounded-md border border-gray-200 bg-white shadow-lg z-10";
 
-export default function SettingButtons({ address, openInPopup, onModeChange }) {
-  const hasAddress = cfg.ADDRESS_REGEX.test(address);
+export default function SettingButtons({ wallet, openInPopup, onModeChange }) {
+  const hasWallet = cfg.WALLET_REGEX.test(wallet);
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const copyTimeoutRef = useRef(null);
@@ -116,10 +116,10 @@ export default function SettingButtons({ address, openInPopup, onModeChange }) {
     }
   }, []);
 
-  const handleCopyAddress = useCallback(() => {
-    if (!hasAddress || !navigator?.clipboard) return;
+  const handleCopyWallet = useCallback(() => {
+    if (!hasWallet || !navigator?.clipboard) return;
     navigator.clipboard
-      .writeText(address)
+      .writeText(wallet)
       .then(() => {
         setCopied(true);
         if (copyTimeoutRef.current) {
@@ -130,9 +130,9 @@ export default function SettingButtons({ address, openInPopup, onModeChange }) {
         }, 2000);
       })
       .catch((error) => {
-        console.error("Failed to copy address", error);
+        console.error("Failed to copy wallet", error);
       });
-  }, [address, hasAddress]);
+  }, [wallet, hasWallet]);
 
   const handleToggleOpenMode = useCallback(async () => {
     if (!chrome?.storage?.sync) {
@@ -182,12 +182,12 @@ export default function SettingButtons({ address, openInPopup, onModeChange }) {
         <div className={menuBaseClasses} ref={menuRef} role="menu">
           <button
             type="button"
-            className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${hasAddress ? "" : "hidden"}`}
-            onClick={handleCopyAddress}
-            title={address}
+            className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${hasWallet ? "" : "hidden"}`}
+            onClick={handleCopyWallet}
+            title={wallet}
             role="menuitem"
           >
-            {copied ? "copied" : formatAddress(address)}
+            {copied ? "copied" : formatWallet(wallet)}
           </button>
           <button
             type="button"
