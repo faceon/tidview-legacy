@@ -1,43 +1,31 @@
-const API_BASE = "https://data-api.polymarket.com";
-const POLYGON_RPC_URL = "https://polygon-rpc.com/";
+const POLYMARKET_API = "https://data-api.polymarket.com";
+const POLYGON_API = "https://polygon-rpc.com/";
 const USDC_CONTRACT = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
 const ERC20_BALANCE_OF_SELECTOR = "0x70a08231";
 const USDC_DECIMALS = 6;
 
-const HTTP_ERROR_MESSAGE = (context, status) =>
-  `${context} failed with HTTP ${status}`;
-
-/**
- * Execute a GET request and parse the JSON response.
- * @param {string} url
- * @param {string} context
- */
-async function fetchJson(url, context) {
+async function fetchJson(url) {
   const res = await fetch(url);
   if (!res.ok) {
-    throw new Error(HTTP_ERROR_MESSAGE(context, res.status));
+    throw new Error("Fetch error " + res.status);
   }
   return res.json();
 }
 
-export async function fetchPositions(address) {
-  const url = `${API_BASE}/positions?user=${encodeURIComponent(address)}`;
-  const data = await fetchJson(url, "Positions request");
+export async function fetchPositions(proxyWallet) {
+  const url = `${POLYMARKET_API}/positions?user=${encodeURIComponent(proxyWallet)}`;
+  const data = await fetchJson(url);
   if (!Array.isArray(data)) {
     throw new Error("Unexpected positions response format");
   }
   return data;
 }
 
-function normalizeAddress(address) {
-  return address.trim().toLowerCase().replace(/^0x/, "");
-}
+export async function fetchCashValue(proxyWallet) {
+  const addressNoPrefix = proxyWallet.trim().toLowerCase().replace(/^0x/, "");
+  const data = ERC20_BALANCE_OF_SELECTOR + addressNoPrefix.padStart(64, "0");
 
-export async function fetchCashValue(address) {
-  const normalizedAddress = normalizeAddress(address);
-  const data = ERC20_BALANCE_OF_SELECTOR + normalizedAddress.padStart(64, "0");
-
-  const res = await fetch(POLYGON_RPC_URL, {
+  const res = await fetch(POLYGON_API, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -55,7 +43,7 @@ export async function fetchCashValue(address) {
   });
 
   if (!res.ok) {
-    throw new Error(HTTP_ERROR_MESSAGE("Polygon RPC request", res.status));
+    throw new Error("Polygon RPC request", res.status);
   }
 
   const json = await res.json();

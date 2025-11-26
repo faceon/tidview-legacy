@@ -1,5 +1,5 @@
 import { formatBadge, parseNumber } from "../common/format.js";
-import { fetchCashValue, fetchPositions } from "./polymarket-api.js";
+import { fetchCashValue, fetchPositions } from "../api/portfolio-data.js";
 import cfg from "../common/config.js";
 
 chrome.runtime.onInstalled.addListener(() => {

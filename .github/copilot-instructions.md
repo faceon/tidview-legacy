@@ -22,7 +22,7 @@
 
 ## Data Sources & Utilities
 
-- `src/background/polymarket-api.js` wraps all network calls: `fetchPositionsValue` and `fetchPositions` hit `https://data-api.polymarket.com`, while `fetchCashValue` performs a Polygon RPC `eth_call` against the USDC contract (balance scaled by `USDC_DECIMALS`). All helpers throw on unexpected payloads so the background worker can surface issues cleanly.
+- `src/api/portfolio-data.js` wraps all network calls: `fetchPositionsValue` and `fetchPositions` hit `https://data-api.polymarket.com`, while `fetchCashValue` performs a Polygon RPC `eth_call` against the USDC contract (balance scaled by `USDC_DECIMALS`). All helpers throw on unexpected payloads so the background worker can surface issues cleanly.
 - `src/common/format.js` centralizes numeric parsing, badge formatting, signed currency, and trend classes. Reuse these helpers instead of ad-hoc `Intl.NumberFormat` instances to keep UI output consistent.
 - `src/common/lit-dev-warn-suppressor.js` is injected before the portfolio entry during development builds to silence Lit’s dev-mode toast; keep it at the top of the `portfolio` entry array if new bundles are added.
 
