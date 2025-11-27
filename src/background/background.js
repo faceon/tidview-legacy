@@ -73,7 +73,7 @@ async function updateStorageAndBadge({
   const timestamp = Date.now();
   const syncData = {
     valuesUpdatedAt: timestamp,
-    valuesError: error,
+    lastError: error,
   };
   const sessionData = {
     positionsUpdatedAt: timestamp,

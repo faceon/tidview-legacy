@@ -28,7 +28,7 @@
 
 ## Storage & Messaging Patterns
 
-- Sync keys: `wallet`, `positionsValue`, `cashValue`, `valuesUpdatedAt`, `valuesError`. Session keys: `positions`, `positionsUpdatedAt`. The UI assumes these exact names and types when reconciling state.
+- Sync keys: `wallet`, `positionsValue`, `cashValue`, `valuesUpdatedAt`, `lastError`. Session keys: `positions`, `positionsUpdatedAt`. The UI assumes these exact names and types when reconciling state.
 - Messaging is one-way (UI → background) via `chrome.runtime.sendMessage({ type: "refresh" })`; listeners generally just trigger `refreshNow()` and rely on storage writes for UI updates. If you introduce new message types, remember to `return true` when responding asynchronously.
 - Badge/title text lives exclusively in the background worker; UI never calls `chrome.action.*`, so keep that encapsulation intact.
 

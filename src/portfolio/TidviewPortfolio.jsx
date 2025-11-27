@@ -65,7 +65,7 @@ function TidviewPortfolio() {
   const [wallet, setWallet] = useState("");
   const [hasWallet, setHasWallet] = useState(false);
   const [valuesUpdatedAt, setValuesUpdatedAt] = useState(null);
-  const [valuesError, setValuesError] = useState("");
+  const [lastError, setLastError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [isBusy, setIsBusy] = useState(false);
   const [positions, setPositions] = useState([]);
@@ -77,7 +77,7 @@ function TidviewPortfolio() {
   const [nowTimestamp, setNowTimestamp] = useState(Date.now());
 
   const walletRef = useLatest(wallet);
-  const valuesErrorRef = useLatest(valuesError);
+  const lastErrorRef = useLatest(lastError);
   const valuesUpdatedAtRef = useLatest(valuesUpdatedAt);
 
   useEffect(() => {
@@ -93,8 +93,8 @@ function TidviewPortfolio() {
   );
 
   const updateStatusFromState = useCallback(
-    (nextValuesError, nextValuesUpdatedAt) => {
-      if (nextValuesError) {
+    (nextLastError, nextValuesUpdatedAt) => {
+      if (nextLastError) {
         setStatusMessage("");
         return;
       }
@@ -171,7 +171,7 @@ function TidviewPortfolio() {
         const {
           wallet: storedWallet,
           valuesUpdatedAt: storedValuesUpdatedAt,
-          valuesError: storedValuesError,
+          lastError: storedLastError,
           positionsValue: storedPositionsValue,
           cashValue: storedCashValue,
           openInPopup: storedOpenInPopup,
@@ -187,7 +187,7 @@ function TidviewPortfolio() {
             ? storedValuesUpdatedAt
             : null;
         setValuesUpdatedAt(parsedValuesUpdatedAt ?? null);
-        setValuesError(storedValuesError ?? "");
+        setLastError(storedLastError ?? "");
         setPositionsValue(
           typeof storedPositionsValue === "number"
             ? storedPositionsValue
@@ -201,19 +201,16 @@ function TidviewPortfolio() {
         const hasPositionsData = Array.isArray(sessionData?.positions);
         setPositionsLoading(valid && !hasPositionsData);
 
-        applyPositionsState(
-          {
-            positions: sessionData?.positions,
-            positionsUpdatedAt: sessionData?.positionsUpdatedAt,
-          },
-          { silent: true },
-        );
+        applyPositionsState({
+          positions: sessionData?.positions,
+          positionsUpdatedAt: sessionData?.positionsUpdatedAt,
+        });
 
-        updateStatusFromState(storedValuesError ?? "", parsedValuesUpdatedAt);
+        updateStatusFromState(storedLastError ?? "", parsedValuesUpdatedAt);
       } catch (error) {
         console.error("Failed to initialize from storage", error);
         if (!cancelled) {
-          setValuesError("Unable to load current status.");
+          setLastError("Unable to load current status.");
           setStatusMessage("");
         }
       }
@@ -231,7 +228,7 @@ function TidviewPortfolio() {
 
     const handleStorageChange = (changes, areaName) => {
       if (areaName === "sync") {
-        let nextValuesError = valuesErrorRef.current;
+        let nextLastError = lastErrorRef.current;
         let nextValuesUpdatedAt = valuesUpdatedAtRef.current;
 
         if (Object.prototype.hasOwnProperty.call(changes, "wallet")) {
@@ -273,19 +270,19 @@ function TidviewPortfolio() {
           nextValuesUpdatedAt = parsed ?? null;
         }
 
-        if (Object.prototype.hasOwnProperty.call(changes, "valuesError")) {
-          const nextError = changes.valuesError.newValue
-            ? String(changes.valuesError.newValue)
+        if (Object.prototype.hasOwnProperty.call(changes, "lastError")) {
+          const nextError = changes.lastError.newValue
+            ? String(changes.lastError.newValue)
             : "";
-          setValuesError(nextError);
-          nextValuesError = nextError;
+          setLastError(nextError);
+          nextLastError = nextError;
         }
 
         if (Object.prototype.hasOwnProperty.call(changes, "openInPopup")) {
           setOpenInPopup(Boolean(changes.openInPopup.newValue));
         }
 
-        updateStatusFromState(nextValuesError, nextValuesUpdatedAt);
+        updateStatusFromState(nextLastError, nextValuesUpdatedAt);
         return;
       }
 
@@ -314,14 +311,14 @@ function TidviewPortfolio() {
     walletRef,
     applyPositionsState,
     updateStatusFromState,
-    valuesErrorRef,
+    lastErrorRef,
     valuesUpdatedAtRef,
   ]);
 
   const requestRefresh = useCallback(
     async ({ recordTimestamp = false } = {}) => {
       if (!chrome?.runtime?.sendMessage) {
-        setValuesError("Chrome runtime unavailable.");
+        setLastError("Chrome runtime unavailable.");
         return false;
       }
       try {
@@ -333,7 +330,7 @@ function TidviewPortfolio() {
       } catch (error) {
         const errorMessage = error?.message || "Failed to refresh balance.";
         console.error("Failed to refresh", errorMessage);
-        setValuesError(errorMessage);
+        setLastError(errorMessage);
         if (!recordTimestamp && valuesUpdatedAtRef.current) {
           setStatusMessage(
             `Last updated: ${new Date(
@@ -358,13 +355,13 @@ function TidviewPortfolio() {
   const handleSave = useCallback(async () => {
     const trimmed = wallet.trim();
     if (!cfg.WALLET_REGEX.test(trimmed)) {
-      setValuesError("Please enter a valid 0x wallet.");
+      setLastError("Please enter a valid 0x wallet.");
       setStatusMessage("");
       return;
     }
 
     setIsBusy(true);
-    setValuesError("");
+    setLastError("");
     setStatusMessage("Saved. Refreshing...");
     setPositionsLoading(true);
     try {
@@ -377,7 +374,7 @@ function TidviewPortfolio() {
       }
     } catch (error) {
       console.error("Failed to save wallet", error);
-      setValuesError(error?.message || "Failed to save wallet.");
+      setLastError(error?.message || "Failed to save wallet.");
       setStatusMessage("");
       setPositionsLoading(false);
     } finally {
@@ -388,13 +385,13 @@ function TidviewPortfolio() {
   const handleRefresh = useCallback(async () => {
     const trimmed = wallet.trim();
     if (!cfg.WALLET_REGEX.test(trimmed)) {
-      setValuesError("Please enter a valid 0x wallet.");
+      setLastError("Please enter a valid 0x wallet.");
       setStatusMessage("");
       return;
     }
 
     setIsBusy(true);
-    setValuesError("");
+    setLastError("");
     setStatusMessage("Refreshing...");
     setPositionsLoading(true);
     try {
@@ -405,7 +402,7 @@ function TidviewPortfolio() {
       }
     } catch (error) {
       console.error("Failed to refresh balance", error);
-      setValuesError(error?.message || "Failed to refresh balance.");
+      setLastError(error?.message || "Failed to refresh balance.");
       setStatusMessage("");
       setPositionsLoading(false);
     } finally {
@@ -515,9 +512,9 @@ function TidviewPortfolio() {
         ) : null}
 
         <div className="flex items-center justify-between gap-3 mt-4 flex-wrap">
-          {valuesError ? (
+          {lastError ? (
             <div className="p-3 rounded-md bg-tid-bg-danger text-tid-negative text-xs flex-1">
-              {valuesError}
+              {lastError}
             </div>
           ) : null}
 
