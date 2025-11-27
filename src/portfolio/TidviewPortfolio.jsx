@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { createRoot } from "react-dom/client";
 import { formatCurrency, formatRefreshAgeLabel } from "../common/format.js";
+import { POSITION_SCHEMA } from "../common/schema.js";
 import cfg from "../common/config.js";
 import PositionsList from "./components/PositionsList.jsx";
 import SettingButtons from "./components/SettingButtons.jsx";
@@ -21,45 +22,25 @@ function generatePositionId(raw) {
 }
 
 function normalizePosition(raw) {
+  const base = { id: generatePositionId(raw) };
+
+  for (const [key, type] of Object.entries(POSITION_SCHEMA)) {
+    if (type === "number") base[key] = null;
+    else if (type === "boolean") base[key] = false;
+    else base[key] = "";
+  }
+
   if (!raw) {
-    const id = generatePositionId(null);
     return {
-      id,
+      ...base,
       title: "Unnamed market",
-      outcome: "",
-      currentValue: null,
-      cashPnl: null,
-      percentPnl: null,
-      size: null,
-      avgPrice: null,
-      curPrice: null,
-      endDate: "",
-      icon: "",
-      initialValue: null,
-      realizedPnl: null,
-      slug: "",
-      eventSlug: "",
     };
   }
 
-  const id = generatePositionId(raw);
-
   return {
-    id,
-    title: raw.title || raw.slug || "Unnamed market",
-    outcome: raw.outcome || "",
-    currentValue: raw.currentValue,
-    cashPnl: raw.cashPnl,
-    percentPnl: raw.percentPnl,
-    size: raw.size,
-    avgPrice: raw.avgPrice,
-    curPrice: raw.curPrice,
-    endDate: raw.endDate || "",
-    icon: raw.icon || "",
-    initialValue: raw.initialValue,
-    realizedPnl: raw.realizedPnl,
-    slug: raw.slug || "",
-    eventSlug: raw.eventSlug || "",
+    ...base,
+    ...raw,
+    title: raw.title || "Unnamed market",
   };
 }
 

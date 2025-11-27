@@ -1,4 +1,5 @@
 import { formatBadge, parseNumber } from "../common/format.js";
+import { POSITION_SCHEMA } from "../common/schema.js";
 import { fetchCashValue, fetchPositions } from "../api/portfolio-data.js";
 import cfg from "../common/config.js";
 
@@ -72,9 +73,18 @@ async function updateStorageAndBadge({
 
   const sanitizePosition = (raw) => {
     if (!raw) return null;
-    const position = { ...raw };
-    for (const key of cfg.NUMERIC_POSITION_FIELDS) {
-      position[key] = parseNumber(position[key]);
+    const position = {};
+
+    for (const [key, type] of Object.entries(POSITION_SCHEMA)) {
+      const value = raw[key];
+      if (type === "number") {
+        position[key] = parseNumber(value);
+      } else if (type === "boolean") {
+        position[key] = Boolean(value);
+      } else {
+        // string or default
+        position[key] = value != null ? String(value) : "";
+      }
     }
     return position;
   };
