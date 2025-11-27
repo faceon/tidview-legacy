@@ -70,9 +70,9 @@ async function updateStorageAndBadge({
     positionsUpdatedAt: timestamp,
   };
 
-  const sanitizePosition = (rawPosition) => {
-    if (!rawPosition) return null;
-    const position = { ...rawPosition };
+  const sanitizePosition = (raw) => {
+    if (!raw) return null;
+    const position = { ...raw };
     for (const key of cfg.NUMERIC_POSITION_FIELDS) {
       position[key] = parseNumber(position[key]);
     }
