@@ -73,8 +73,10 @@ async function updateStorageAndBadge({
     if (!raw) return null;
     const position = {};
 
-    for (const [key, type] of Object.entries(POSITION_SCHEMA)) {
+    for (const [key, fieldDef] of Object.entries(POSITION_SCHEMA)) {
       const value = raw[key];
+      const type = fieldDef.type;
+
       if (type === "number") {
         position[key] = parseNumber(value);
       } else if (type === "boolean") {

@@ -24,24 +24,13 @@ function generatePositionId(raw) {
 function normalizePosition(raw) {
   const base = { id: generatePositionId(raw) };
 
-  for (const [key, type] of Object.entries(POSITION_SCHEMA)) {
-    if (type === "number") base[key] = null;
-    else if (type === "boolean") base[key] = false;
-    else base[key] = "";
+  for (const [key, fieldDef] of Object.entries(POSITION_SCHEMA)) {
+    base[key] = fieldDef.default;
   }
 
-  if (!raw) {
-    return {
-      ...base,
-      title: "Unnamed market",
-    };
-  }
+  if (!raw) return base;
 
-  return {
-    ...base,
-    ...raw,
-    title: raw.title || "Unnamed market",
-  };
+  return { ...base, ...raw };
 }
 
 function useLatest(value) {
@@ -55,14 +44,13 @@ function useLatest(value) {
 function TidviewPortfolio() {
   const [wallet, setWallet] = useState("");
   const [hasWallet, setHasWallet] = useState(false);
+  const [cashValue, setCashValue] = useState(null);
   const [updatedAt, setUpdatedAt] = useState(null);
   const [lastError, setLastError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [isBusy, setIsBusy] = useState(false);
   const [positions, setPositions] = useState([]);
-  const [positionsLoading, setPositionsLoading] = useState(false);
   const [positionsValue, setPositionsValue] = useState(null);
-  const [cashValue, setCashValue] = useState(null);
   const [openInPopup, setOpenInPopup] = useState(false);
   const [nowTimestamp, setNowTimestamp] = useState(Date.now());
 
@@ -124,7 +112,7 @@ function TidviewPortfolio() {
     }
 
     if (touched) {
-      setPositionsLoading(false);
+      setIsBusy(false);
     }
   }, []);
 
@@ -176,7 +164,9 @@ function TidviewPortfolio() {
         setOpenInPopup(Boolean(storedOpenInPopup));
 
         const hasPositionsData = Array.isArray(sessionData?.positions);
-        setPositionsLoading(valid && !hasPositionsData);
+        if (valid && !hasPositionsData) {
+          setIsBusy(true);
+        }
 
         applyPositionsState({
           positions: sessionData?.positions,
@@ -220,14 +210,14 @@ function TidviewPortfolio() {
             setPositions([]);
             setPositionsValue(null);
             setUpdatedAt(null);
-            setPositionsLoading(true);
+            setIsBusy(true);
           }
 
           if (!valid) {
             setPositions([]);
             setPositionsValue(null);
             setUpdatedAt(null);
-            setPositionsLoading(false);
+            setIsBusy(false);
           }
         }
 
@@ -244,7 +234,7 @@ function TidviewPortfolio() {
           const parsed = typeof raw === "number" ? raw : null;
           setUpdatedAt(parsed ?? null);
           nextUpdatedAt = parsed ?? null;
-          setPositionsLoading(false);
+          setIsBusy(false);
         } else if (
           Object.prototype.hasOwnProperty.call(changes, "valuesUpdatedAt")
         ) {
@@ -252,7 +242,7 @@ function TidviewPortfolio() {
           const parsed = typeof raw === "number" ? raw : null;
           setUpdatedAt(parsed ?? null);
           nextUpdatedAt = parsed ?? null;
-          setPositionsLoading(false);
+          setIsBusy(false);
         }
 
         if (Object.prototype.hasOwnProperty.call(changes, "lastError")) {
@@ -319,7 +309,17 @@ function TidviewPortfolio() {
         }
         return false;
       } finally {
-        setPositionsLoading(false);
+        // setIsBusy(false) is handled by storage listener or manual reset if needed,
+        // but requestRefresh is usually called within a flow that manages isBusy.
+        // However, if we want to ensure it turns off if not handled by storage:
+        // Actually, the original code turned off positionsLoading here.
+        // Since isBusy is now shared, we should be careful.
+        // But typically refresh ends with a storage update which turns off isBusy.
+        // If it fails, we might need to turn it off.
+        // Let's leave it to the caller or the catch block for now, or just set it false here if it was only for loading.
+        // The original code set positionsLoading(false) in finally.
+        // We should probably set isBusy(false) here to be safe.
+        setIsBusy(false);
       }
     },
     [updatedAtRef],
@@ -340,7 +340,7 @@ function TidviewPortfolio() {
     setIsBusy(true);
     setLastError("");
     setStatusMessage("Saved. Refreshing...");
-    setPositionsLoading(true);
+    // setPositionsLoading(true); -> isBusy is already true
     try {
       await chrome.storage.sync.set({ wallet: trimmed });
       setWallet(trimmed);
@@ -353,8 +353,13 @@ function TidviewPortfolio() {
       console.error("Failed to save wallet", error);
       setLastError(error?.message || "Failed to save wallet.");
       setStatusMessage("");
-      setPositionsLoading(false);
+      setIsBusy(false);
     } finally {
+      // setIsBusy(false); -> handled in catch or by storage update?
+      // Original code had setIsBusy(false) in finally.
+      // But we also want to keep it true if it's still loading?
+      // The original code had setIsBusy(false) AND setPositionsLoading(false) (via requestRefresh finally).
+      // So yes, we should ensure isBusy is false in finally.
       setIsBusy(false);
     }
   }, [wallet, requestRefresh]);
@@ -370,7 +375,7 @@ function TidviewPortfolio() {
     setIsBusy(true);
     setLastError("");
     setStatusMessage("Refreshing...");
-    setPositionsLoading(true);
+    // setPositionsLoading(true); -> isBusy is already true
     try {
       setWallet(trimmed);
       const refreshOk = await requestRefresh({ recordTimestamp: true });
@@ -381,7 +386,7 @@ function TidviewPortfolio() {
       console.error("Failed to refresh balance", error);
       setLastError(error?.message || "Failed to refresh balance.");
       setStatusMessage("");
-      setPositionsLoading(false);
+      setIsBusy(false);
     } finally {
       setIsBusy(false);
     }
@@ -524,7 +529,7 @@ function TidviewPortfolio() {
       <main className="flex-1 px-3">
         <PositionsList
           positions={positions}
-          loading={positionsLoading}
+          loading={isBusy}
           openMarket={openMarket}
         />
       </main>
