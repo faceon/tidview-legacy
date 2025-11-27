@@ -56,15 +56,6 @@ async function applyOpenMode(openInPopup) {
   }
 }
 
-function sanitizePosition(rawPosition) {
-  if (!rawPosition) return null;
-  const position = { ...rawPosition };
-  for (const key of cfg.NUMERIC_POSITION_FIELDS) {
-    position[key] = parseNumber(position[key]);
-  }
-  return position;
-}
-
 async function updateStorageAndBadge({
   cashValue = null,
   positions = null,
@@ -79,7 +70,16 @@ async function updateStorageAndBadge({
     positionsUpdatedAt: timestamp,
   };
 
-  if (!error) {
+  const sanitizePosition = (rawPosition) => {
+    if (!rawPosition) return null;
+    const position = { ...rawPosition };
+    for (const key of cfg.NUMERIC_POSITION_FIELDS) {
+      position[key] = parseNumber(position[key]);
+    }
+    return position;
+  };
+
+  if (positions !== null) {
     const sanitizedPositions = Array.isArray(positions)
       ? positions.map(sanitizePosition).filter(Boolean)
       : [];
@@ -89,8 +89,11 @@ async function updateStorageAndBadge({
     );
 
     syncData.positionsValue = positionsValue;
-    syncData.cashValue = parseNumber(cashValue);
     sessionData.positions = sanitizedPositions;
+  }
+
+  if (cashValue !== null) {
+    syncData.cashValue = parseNumber(cashValue);
   }
 
   await Promise.all([
@@ -121,30 +124,36 @@ async function fetchAndUpdateData() {
   }
 
   try {
-    const results = await Promise.allSettled([
+    const [cashResult, positionsResult] = await Promise.allSettled([
       fetchCashValue(wallet),
       fetchPositions(wallet),
     ]);
 
-    const unwrap = (result, name) => {
+    const getResult = (result, label) => {
       if (result.status === "rejected") {
-        throw new Error(result.reason?.message || String(result.reason));
+        return {
+          error: `${label}: ${result.reason?.message || result.reason}`,
+        };
       }
-      if (result.value && result.value.error) {
-        throw new Error(`${name}: ${result.value.error}`);
+      if (result.value?.error) {
+        return { error: `${label}: ${result.value.error}` };
       }
-      return result.value;
+      return { value: result.value };
     };
 
-    const cashValue = unwrap(results[0], "Cash Value");
-    const positions = unwrap(results[1], "Positions");
+    const cash = getResult(cashResult, "Cash Value");
+    const pos = getResult(positionsResult, "Positions");
+
+    const errors = [cash.error, pos.error].filter(Boolean);
+    const error = errors.length > 0 ? errors.join("; ") : null;
 
     await updateStorageAndBadge({
-      cashValue,
-      positions,
+      cashValue: cash.value,
+      positions: pos.value,
+      error,
     });
 
-    return { success: true };
+    return { success: !error, error };
   } catch (error) {
     const errorMessage = error?.message || String(error) || "Unknown error";
     console.error("Refresh failed:", error);
