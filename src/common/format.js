@@ -17,6 +17,21 @@ export const formatCurrency = (value) => {
   return currencyFormatter.format(num);
 };
 
+export const formatRefreshAgeLabel = (valuesUpdatedAt) => {
+  const now = Date.now();
+  if (typeof valuesUpdatedAt !== "number") {
+    return "";
+  }
+  const age = Math.max(now - valuesUpdatedAt, 0);
+  if (age < 60 * 1000) {
+    return `${Math.max(Math.floor(age / 1000), 0)}s`;
+  }
+  if (age < 60 * 60 * 1000) {
+    return `${Math.floor(age / (60 * 1000))}m`;
+  }
+  return `${Math.floor(age / (60 * 60 * 1000))}h`;
+};
+
 export const formatSignedCurrency = (value) => {
   const num = parseNumber(value);
   if (num == null) return "—";

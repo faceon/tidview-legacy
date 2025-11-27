@@ -6,24 +6,10 @@ import React, {
   useState,
 } from "react";
 import { createRoot } from "react-dom/client";
-import { formatCurrency } from "../common/format.js";
+import { formatCurrency, formatRefreshAgeLabel } from "../common/format.js";
 import cfg from "../common/config.js";
 import PositionsList from "./components/PositionsList.jsx";
 import SettingButtons from "./components/SettingButtons.jsx";
-
-function formatRefreshAgeLabel(valuesUpdatedAt, now = Date.now()) {
-  if (typeof valuesUpdatedAt !== "number") {
-    return "";
-  }
-  const age = Math.max(now - valuesUpdatedAt, 0);
-  if (age < 60 * 1000) {
-    return `${Math.max(Math.floor(age / 1000), 0)}s`;
-  }
-  if (age < 60 * 60 * 1000) {
-    return `${Math.floor(age / (60 * 1000))}m`;
-  }
-  return `${Math.floor(age / (60 * 60 * 1000))}h`;
-}
 
 function normalizePosition(raw) {
   const id =
