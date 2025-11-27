@@ -11,31 +11,55 @@ import cfg from "../common/config.js";
 import PositionsList from "./components/PositionsList.jsx";
 import SettingButtons from "./components/SettingButtons.jsx";
 
+function generatePositionId(raw) {
+  const fallbackId = "pos-" + Math.random().toString(36).slice(2);
+  if (!raw) return fallbackId;
+  if (raw.asset) return raw.asset;
+  if (raw.conditionId) return raw.conditionId;
+  if (raw.slug) return raw.outcome ? `${raw.slug}-${raw.outcome}` : raw.slug;
+  return fallbackId;
+}
+
 function normalizePosition(raw) {
-  const id =
-    raw?.asset ||
-    (raw?.slug && raw?.outcome
-      ? `${raw.slug}-${raw.outcome}`
-      : raw?.conditionId ||
-        raw?.title ||
-        `pos-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  if (!raw) {
+    const id = generatePositionId(null);
+    return {
+      id,
+      title: "Unnamed market",
+      outcome: "",
+      currentValue: null,
+      cashPnl: null,
+      percentPnl: null,
+      size: null,
+      avgPrice: null,
+      curPrice: null,
+      endDate: "",
+      icon: "",
+      initialValue: null,
+      realizedPnl: null,
+      slug: "",
+      eventSlug: "",
+    };
+  }
+
+  const id = generatePositionId(raw);
 
   return {
     id,
-    title: raw?.title || raw?.slug || "Unnamed market",
-    outcome: raw?.outcome || "",
-    currentValue: raw?.currentValue,
-    cashPnl: raw?.cashPnl,
-    percentPnl: raw?.percentPnl,
-    size: raw?.size,
-    avgPrice: raw?.avgPrice,
-    curPrice: raw?.curPrice,
-    endDate: raw?.endDate || "",
-    icon: raw?.icon || "",
-    initialValue: raw?.initialValue,
-    realizedPnl: raw?.realizedPnl,
-    slug: raw?.slug || "",
-    eventSlug: raw?.eventSlug || "",
+    title: raw.title || raw.slug || "Unnamed market",
+    outcome: raw.outcome || "",
+    currentValue: raw.currentValue,
+    cashPnl: raw.cashPnl,
+    percentPnl: raw.percentPnl,
+    size: raw.size,
+    avgPrice: raw.avgPrice,
+    curPrice: raw.curPrice,
+    endDate: raw.endDate || "",
+    icon: raw.icon || "",
+    initialValue: raw.initialValue,
+    realizedPnl: raw.realizedPnl,
+    slug: raw.slug || "",
+    eventSlug: raw.eventSlug || "",
   };
 }
 
