@@ -112,7 +112,7 @@ function TidviewPortfolio() {
     [],
   );
 
-  const applyPositionsState = useCallback((state, { silent = false } = {}) => {
+  const applyPositionsState = useCallback((state) => {
     let touched = false;
     if (Object.prototype.hasOwnProperty.call(state, "positions")) {
       const rawPositions = state.positions;

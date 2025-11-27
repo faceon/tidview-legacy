@@ -56,19 +56,13 @@ async function applyOpenMode(openInPopup) {
   }
 }
 
-function sanitizePosition(pos) {
-  if (!pos) return null;
-  return {
-    ...pos,
-    currentValue: parseNumber(pos.currentValue),
-    cashPnl: parseNumber(pos.cashPnl),
-    percentPnl: parseNumber(pos.percentPnl),
-    size: parseNumber(pos.size),
-    avgPrice: parseNumber(pos.avgPrice),
-    curPrice: parseNumber(pos.curPrice),
-    initialValue: parseNumber(pos.initialValue),
-    realizedPnl: parseNumber(pos.realizedPnl),
-  };
+function sanitizePosition(rawPosition) {
+  if (!rawPosition) return null;
+  const position = { ...rawPosition };
+  for (const key of cfg.NUMERIC_POSITION_FIELDS) {
+    position[key] = parseNumber(position[key]);
+  }
+  return position;
 }
 
 async function updateStorageAndBadge({
@@ -88,18 +82,17 @@ async function updateStorageAndBadge({
     positionsUpdatedAt: timestamp,
   };
 
-  // Sanitize positions to ensure numbers are stored
   const sanitizedPositions = Array.isArray(positions)
     ? positions.map(sanitizePosition).filter(Boolean)
     : [];
 
-  const positionsValue = sanitizedPositions.reduce((sum, pos) => {
-    const val = pos?.currentValue;
-    return val != null ? sum + val : sum;
-  }, 0);
+  const positionsValue = sanitizedPositions.reduce(
+    (sum, pos) => sum + (pos?.currentValue ?? 0),
+    0,
+  );
 
   if (!isError) {
-    syncData.cashValue = parseNumber(cashValue); // Ensure cashValue is also a number
+    syncData.cashValue = parseNumber(cashValue);
     syncData.positionsValue = positionsValue;
     sessionData.positions = sanitizedPositions;
   }
@@ -111,16 +104,18 @@ async function updateStorageAndBadge({
 
   if (isError) {
     updateBadge("-", `Error: ${error}`);
-  } else {
-    const safePosValue = Number(positionsValue) || 0;
-    const safeCashValue = Number(cashValue) || 0;
-    const totalValue = safePosValue + safeCashValue;
-
-    updateBadge(
-      formatBadge(totalValue),
-      `Portfolio Total: $${totalValue.toLocaleString()}`,
-    );
+    return;
   }
+
+  // Use the stored, sanitized scalars for badge computation (fallback 0)
+  const safePosValue = syncData.positionsValue ?? 0;
+  const safeCashValue = syncData.cashValue ?? 0;
+  const totalValue = safePosValue + safeCashValue;
+
+  updateBadge(
+    formatBadge(totalValue),
+    `Portfolio Total: $${totalValue.toLocaleString()}`,
+  );
 }
 
 async function fetchAndUpdateData() {
