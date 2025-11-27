@@ -101,17 +101,20 @@ async function updateStorageAndBadge({
     chrome.storage.session.set(sessionData),
   ]);
 
-  if (error) {
-    updateBadge("-", `Error: ${error}`);
-    return;
-  }
-
   const totalValue = (syncData.positionsValue ?? 0) + (syncData.cashValue ?? 0);
 
-  updateBadge(
-    formatBadge(totalValue),
-    `Portfolio Total: $${totalValue.toLocaleString()}`,
-  );
+  if (error) {
+    const isTotalFailure = positions === null && cashValue === null;
+    updateBadge(
+      isTotalFailure ? "-" : formatBadge(totalValue),
+      `Error: ${error}`,
+    );
+  } else {
+    updateBadge(
+      formatBadge(totalValue),
+      `Portfolio Total: $${totalValue.toLocaleString()}`,
+    );
+  }
 }
 
 async function fetchAndUpdateData() {
