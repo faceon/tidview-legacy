@@ -71,29 +71,25 @@ async function updateStorageAndBadge({
   error = null,
 } = {}) {
   const timestamp = Date.now();
-  const isError = Boolean(error);
-
   const syncData = {
     valuesUpdatedAt: timestamp,
     valuesError: error,
   };
-
   const sessionData = {
     positionsUpdatedAt: timestamp,
   };
 
-  const sanitizedPositions = Array.isArray(positions)
-    ? positions.map(sanitizePosition).filter(Boolean)
-    : [];
+  if (!error) {
+    const sanitizedPositions = Array.isArray(positions)
+      ? positions.map(sanitizePosition).filter(Boolean)
+      : [];
+    const positionsValue = sanitizedPositions.reduce(
+      (sum, pos) => sum + (pos?.currentValue ?? 0),
+      0,
+    );
 
-  const positionsValue = sanitizedPositions.reduce(
-    (sum, pos) => sum + (pos?.currentValue ?? 0),
-    0,
-  );
-
-  if (!isError) {
-    syncData.cashValue = parseNumber(cashValue);
     syncData.positionsValue = positionsValue;
+    syncData.cashValue = parseNumber(cashValue);
     sessionData.positions = sanitizedPositions;
   }
 
@@ -102,15 +98,12 @@ async function updateStorageAndBadge({
     chrome.storage.session.set(sessionData),
   ]);
 
-  if (isError) {
+  if (error) {
     updateBadge("-", `Error: ${error}`);
     return;
   }
 
-  // Use the stored, sanitized scalars for badge computation (fallback 0)
-  const safePosValue = syncData.positionsValue ?? 0;
-  const safeCashValue = syncData.cashValue ?? 0;
-  const totalValue = safePosValue + safeCashValue;
+  const totalValue = (syncData.positionsValue ?? 0) + (syncData.cashValue ?? 0);
 
   updateBadge(
     formatBadge(totalValue),
