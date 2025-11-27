@@ -17,12 +17,12 @@ export const formatCurrency = (value) => {
   return currencyFormatter.format(num);
 };
 
-export const formatRefreshAgeLabel = (valuesUpdatedAt) => {
+export const formatRefreshAgeLabel = (updatedAt) => {
   const now = Date.now();
-  if (typeof valuesUpdatedAt !== "number") {
+  if (typeof updatedAt !== "number") {
     return "";
   }
-  const age = Math.max(now - valuesUpdatedAt, 0);
+  const age = Math.max(now - updatedAt, 0);
   if (age < 60 * 1000) {
     return `${Math.max(Math.floor(age / 1000), 0)}s`;
   }

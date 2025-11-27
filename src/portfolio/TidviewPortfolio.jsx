@@ -55,13 +55,12 @@ function useLatest(value) {
 function TidviewPortfolio() {
   const [wallet, setWallet] = useState("");
   const [hasWallet, setHasWallet] = useState(false);
-  const [valuesUpdatedAt, setValuesUpdatedAt] = useState(null);
+  const [updatedAt, setUpdatedAt] = useState(null);
   const [lastError, setLastError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [isBusy, setIsBusy] = useState(false);
   const [positions, setPositions] = useState([]);
   const [positionsLoading, setPositionsLoading] = useState(false);
-  const [positionsUpdatedAt, setPositionsUpdatedAt] = useState(null);
   const [positionsValue, setPositionsValue] = useState(null);
   const [cashValue, setCashValue] = useState(null);
   const [openInPopup, setOpenInPopup] = useState(false);
@@ -69,7 +68,7 @@ function TidviewPortfolio() {
 
   const walletRef = useLatest(wallet);
   const lastErrorRef = useLatest(lastError);
-  const valuesUpdatedAtRef = useLatest(valuesUpdatedAt);
+  const updatedAtRef = useLatest(updatedAt);
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -79,29 +78,23 @@ function TidviewPortfolio() {
   }, []);
 
   const refreshAgeLabel = useMemo(
-    () => formatRefreshAgeLabel(valuesUpdatedAt, nowTimestamp),
-    [valuesUpdatedAt, nowTimestamp],
+    () => formatRefreshAgeLabel(updatedAt, nowTimestamp),
+    [updatedAt, nowTimestamp],
   );
 
-  const updateStatusFromState = useCallback(
-    (nextLastError, nextValuesUpdatedAt) => {
-      if (nextLastError) {
-        setStatusMessage("");
-        return;
-      }
-      if (
-        typeof nextValuesUpdatedAt === "number" &&
-        !Number.isNaN(nextValuesUpdatedAt)
-      ) {
-        setStatusMessage(
-          `Last updated: ${new Date(nextValuesUpdatedAt).toLocaleString()}`,
-        );
-      } else {
-        setStatusMessage("");
-      }
-    },
-    [],
-  );
+  const updateStatusFromState = useCallback((nextLastError, nextUpdatedAt) => {
+    if (nextLastError) {
+      setStatusMessage("");
+      return;
+    }
+    if (typeof nextUpdatedAt === "number" && !Number.isNaN(nextUpdatedAt)) {
+      setStatusMessage(
+        `Last updated: ${new Date(nextUpdatedAt).toLocaleString()}`,
+      );
+    } else {
+      setStatusMessage("");
+    }
+  }, []);
 
   const applyPositionsState = useCallback((state) => {
     let touched = false;
@@ -130,16 +123,6 @@ function TidviewPortfolio() {
       }
     }
 
-    if (Object.prototype.hasOwnProperty.call(state, "positionsUpdatedAt")) {
-      const rawUpdatedAt = state.positionsUpdatedAt;
-      setPositionsUpdatedAt(
-        typeof rawUpdatedAt === "number" && !Number.isNaN(rawUpdatedAt)
-          ? rawUpdatedAt
-          : null,
-      );
-      touched = true;
-    }
-
     if (touched) {
       setPositionsLoading(false);
     }
@@ -161,7 +144,8 @@ function TidviewPortfolio() {
 
         const {
           wallet: storedWallet,
-          valuesUpdatedAt: storedValuesUpdatedAt,
+          updatedAt: storedUpdatedAt,
+          valuesUpdatedAt: legacyValuesUpdatedAt,
           lastError: storedLastError,
           positionsValue: storedPositionsValue,
           cashValue: storedCashValue,
@@ -173,11 +157,13 @@ function TidviewPortfolio() {
         const valid = cfg.WALLET_REGEX.test(nextWallet);
         setWallet(nextWallet);
         setHasWallet(valid);
-        const parsedValuesUpdatedAt =
-          typeof storedValuesUpdatedAt === "number"
-            ? storedValuesUpdatedAt
-            : null;
-        setValuesUpdatedAt(parsedValuesUpdatedAt ?? null);
+        const parsedUpdatedAt =
+          typeof storedUpdatedAt === "number"
+            ? storedUpdatedAt
+            : typeof legacyValuesUpdatedAt === "number"
+              ? legacyValuesUpdatedAt
+              : null;
+        setUpdatedAt(parsedUpdatedAt ?? null);
         setLastError(storedLastError ?? "");
         setPositionsValue(
           typeof storedPositionsValue === "number"
@@ -194,10 +180,9 @@ function TidviewPortfolio() {
 
         applyPositionsState({
           positions: sessionData?.positions,
-          positionsUpdatedAt: sessionData?.positionsUpdatedAt,
         });
 
-        updateStatusFromState(storedLastError ?? "", parsedValuesUpdatedAt);
+        updateStatusFromState(storedLastError ?? "", parsedUpdatedAt);
       } catch (error) {
         console.error("Failed to initialize from storage", error);
         if (!cancelled) {
@@ -220,7 +205,7 @@ function TidviewPortfolio() {
     const handleStorageChange = (changes, areaName) => {
       if (areaName === "sync") {
         let nextLastError = lastErrorRef.current;
-        let nextValuesUpdatedAt = valuesUpdatedAtRef.current;
+        let nextUpdatedAt = updatedAtRef.current;
 
         if (Object.prototype.hasOwnProperty.call(changes, "wallet")) {
           const newWalletRaw = changes.wallet.newValue;
@@ -234,14 +219,14 @@ function TidviewPortfolio() {
           if (valid && newWallet !== previousWallet) {
             setPositions([]);
             setPositionsValue(null);
-            setPositionsUpdatedAt(null);
+            setUpdatedAt(null);
             setPositionsLoading(true);
           }
 
           if (!valid) {
             setPositions([]);
             setPositionsValue(null);
-            setPositionsUpdatedAt(null);
+            setUpdatedAt(null);
             setPositionsLoading(false);
           }
         }
@@ -254,11 +239,20 @@ function TidviewPortfolio() {
           setCashValue(changes.cashValue.newValue);
         }
 
-        if (Object.prototype.hasOwnProperty.call(changes, "valuesUpdatedAt")) {
+        if (Object.prototype.hasOwnProperty.call(changes, "updatedAt")) {
+          const raw = changes.updatedAt.newValue;
+          const parsed = typeof raw === "number" ? raw : null;
+          setUpdatedAt(parsed ?? null);
+          nextUpdatedAt = parsed ?? null;
+          setPositionsLoading(false);
+        } else if (
+          Object.prototype.hasOwnProperty.call(changes, "valuesUpdatedAt")
+        ) {
           const raw = changes.valuesUpdatedAt.newValue;
           const parsed = typeof raw === "number" ? raw : null;
-          setValuesUpdatedAt(parsed ?? null);
-          nextValuesUpdatedAt = parsed ?? null;
+          setUpdatedAt(parsed ?? null);
+          nextUpdatedAt = parsed ?? null;
+          setPositionsLoading(false);
         }
 
         if (Object.prototype.hasOwnProperty.call(changes, "lastError")) {
@@ -273,7 +267,7 @@ function TidviewPortfolio() {
           setOpenInPopup(Boolean(changes.openInPopup.newValue));
         }
 
-        updateStatusFromState(nextLastError, nextValuesUpdatedAt);
+        updateStatusFromState(nextLastError, nextUpdatedAt);
         return;
       }
 
@@ -281,12 +275,6 @@ function TidviewPortfolio() {
         const sessionUpdate = {};
         if (Object.prototype.hasOwnProperty.call(changes, "positions")) {
           sessionUpdate.positions = changes.positions.newValue;
-        }
-        if (
-          Object.prototype.hasOwnProperty.call(changes, "positionsUpdatedAt")
-        ) {
-          sessionUpdate.positionsUpdatedAt =
-            changes.positionsUpdatedAt.newValue;
         }
         if (Object.keys(sessionUpdate).length) {
           applyPositionsState(sessionUpdate);
@@ -303,7 +291,7 @@ function TidviewPortfolio() {
     applyPositionsState,
     updateStatusFromState,
     lastErrorRef,
-    valuesUpdatedAtRef,
+    updatedAtRef,
   ]);
 
   const requestRefresh = useCallback(
@@ -322,11 +310,9 @@ function TidviewPortfolio() {
         const errorMessage = error?.message || "Failed to refresh balance.";
         console.error("Failed to refresh", errorMessage);
         setLastError(errorMessage);
-        if (!recordTimestamp && valuesUpdatedAtRef.current) {
+        if (!recordTimestamp && updatedAtRef.current) {
           setStatusMessage(
-            `Last updated: ${new Date(
-              valuesUpdatedAtRef.current,
-            ).toLocaleString()}`,
+            `Last updated: ${new Date(updatedAtRef.current).toLocaleString()}`,
           );
         } else {
           setStatusMessage("");
@@ -336,7 +322,7 @@ function TidviewPortfolio() {
         setPositionsLoading(false);
       }
     },
-    [valuesUpdatedAtRef],
+    [updatedAtRef],
   );
 
   const handleInput = useCallback((event) => {
@@ -547,9 +533,9 @@ function TidviewPortfolio() {
         {statusMessage ? (
           <div className="text-xs text-tid-muted">{statusMessage}</div>
         ) : null}
-        {positionsUpdatedAt ? (
+        {updatedAt ? (
           <div className="text-xs text-tid-muted">
-            Positions refreshed: {new Date(positionsUpdatedAt).toLocaleString()}
+            Positions refreshed: {new Date(updatedAt).toLocaleString()}
           </div>
         ) : null}
       </footer>

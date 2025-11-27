@@ -64,12 +64,10 @@ async function updateStorageAndBadge({
 } = {}) {
   const timestamp = Date.now();
   const syncData = {
-    valuesUpdatedAt: timestamp,
+    updatedAt: timestamp,
     lastError: error,
   };
-  const sessionData = {
-    positionsUpdatedAt: timestamp,
-  };
+  const sessionData = {};
 
   const sanitizePosition = (raw) => {
     if (!raw) return null;
