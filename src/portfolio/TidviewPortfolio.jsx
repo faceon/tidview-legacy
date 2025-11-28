@@ -12,16 +12,16 @@ import cfg from "../common/config.js";
 import PositionsList from "./components/PositionsList.jsx";
 import SettingButtons from "./components/SettingButtons.jsx";
 
-function generatePositionId(raw) {
-  const fallbackId = "pos-" + Math.random().toString(36).slice(2);
-  if (!raw) return fallbackId;
-  if (raw.asset) return raw.asset;
-  if (raw.conditionId) return raw.conditionId;
-  if (raw.slug) return raw.outcome ? `${raw.slug}-${raw.outcome}` : raw.slug;
-  return fallbackId;
-}
-
 function normalizePosition(raw) {
+  const generatePositionId = (raw) => {
+    const fallbackId = "pos-" + Math.random().toString(36).slice(2);
+    if (!raw) return fallbackId;
+    if (raw.asset) return raw.asset;
+    if (raw.conditionId) return raw.conditionId;
+    if (raw.slug) return raw.outcome ? `${raw.slug}-${raw.outcome}` : raw.slug;
+    return fallbackId;
+  };
+
   const base = { id: generatePositionId(raw) };
 
   for (const [key, fieldDef] of Object.entries(POSITION)) {
