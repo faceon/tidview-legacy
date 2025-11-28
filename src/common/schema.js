@@ -1,4 +1,4 @@
-export const POSITION_SCHEMA = {
+export const POSITION = {
   // Numbers
   size: { type: "number", default: null },
   avgPrice: { type: "number", default: null },

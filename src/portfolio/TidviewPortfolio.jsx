@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { createRoot } from "react-dom/client";
 import { formatCurrency, formatRefreshAgeLabel } from "../common/format.js";
-import { POSITION_SCHEMA } from "../common/schema.js";
+import { POSITION } from "../common/schema.js";
 import cfg from "../common/config.js";
 import PositionsList from "./components/PositionsList.jsx";
 import SettingButtons from "./components/SettingButtons.jsx";
@@ -24,7 +24,7 @@ function generatePositionId(raw) {
 function normalizePosition(raw) {
   const base = { id: generatePositionId(raw) };
 
-  for (const [key, fieldDef] of Object.entries(POSITION_SCHEMA)) {
+  for (const [key, fieldDef] of Object.entries(POSITION)) {
     base[key] = fieldDef.default;
   }
 

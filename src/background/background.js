@@ -1,5 +1,5 @@
 import { formatBadge, parseNumber } from "../common/format.js";
-import { POSITION_SCHEMA } from "../common/schema.js";
+import { POSITION } from "../common/schema.js";
 import { fetchCashValue, fetchPositions } from "../api/portfolio-data.js";
 import cfg from "../common/config.js";
 
@@ -73,7 +73,7 @@ async function updateStorageAndBadge({
     if (!raw) return null;
     const position = {};
 
-    for (const [key, fieldDef] of Object.entries(POSITION_SCHEMA)) {
+    for (const [key, fieldDef] of Object.entries(POSITION)) {
       const value = raw[key];
       const type = fieldDef.type;
 
