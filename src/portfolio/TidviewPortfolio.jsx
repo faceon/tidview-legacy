@@ -86,7 +86,7 @@ function TidviewPortfolio() {
 
   const applyPositionsState = useCallback((state) => {
     let touched = false;
-    if (Object.prototype.hasOwnProperty.call(state, "positions")) {
+    if ("positions" in state) {
       const rawPositions = state.positions;
       if (Array.isArray(rawPositions)) {
         const normalized = rawPositions.map((entry) =>
@@ -197,7 +197,7 @@ function TidviewPortfolio() {
         let nextLastError = lastErrorRef.current;
         let nextUpdatedAt = updatedAtRef.current;
 
-        if (Object.prototype.hasOwnProperty.call(changes, "wallet")) {
+        if ("wallet" in changes) {
           const newWalletRaw = changes.wallet.newValue;
           const newWallet =
             typeof newWalletRaw === "string" ? newWalletRaw.trim() : "";
@@ -221,23 +221,21 @@ function TidviewPortfolio() {
           }
         }
 
-        if (Object.prototype.hasOwnProperty.call(changes, "positionsValue")) {
+        if ("positionsValue" in changes) {
           setPositionsValue(changes.positionsValue.newValue);
         }
 
-        if (Object.prototype.hasOwnProperty.call(changes, "cashValue")) {
+        if ("cashValue" in changes) {
           setCashValue(changes.cashValue.newValue);
         }
 
-        if (Object.prototype.hasOwnProperty.call(changes, "updatedAt")) {
+        if ("updatedAt" in changes) {
           const raw = changes.updatedAt.newValue;
           const parsed = typeof raw === "number" ? raw : null;
           setUpdatedAt(parsed ?? null);
           nextUpdatedAt = parsed ?? null;
           setIsBusy(false);
-        } else if (
-          Object.prototype.hasOwnProperty.call(changes, "valuesUpdatedAt")
-        ) {
+        } else if ("valuesUpdatedAt" in changes) {
           const raw = changes.valuesUpdatedAt.newValue;
           const parsed = typeof raw === "number" ? raw : null;
           setUpdatedAt(parsed ?? null);
@@ -245,7 +243,7 @@ function TidviewPortfolio() {
           setIsBusy(false);
         }
 
-        if (Object.prototype.hasOwnProperty.call(changes, "lastError")) {
+        if ("lastError" in changes) {
           const nextError = changes.lastError.newValue
             ? String(changes.lastError.newValue)
             : "";
@@ -253,7 +251,7 @@ function TidviewPortfolio() {
           nextLastError = nextError;
         }
 
-        if (Object.prototype.hasOwnProperty.call(changes, "openInPopup")) {
+        if ("openInPopup" in changes) {
           setOpenInPopup(Boolean(changes.openInPopup.newValue));
         }
 
@@ -263,7 +261,7 @@ function TidviewPortfolio() {
 
       if (areaName === "session") {
         const sessionUpdate = {};
-        if (Object.prototype.hasOwnProperty.call(changes, "positions")) {
+        if ("positions" in changes) {
           sessionUpdate.positions = changes.positions.newValue;
         }
         if (Object.keys(sessionUpdate).length) {
@@ -309,16 +307,6 @@ function TidviewPortfolio() {
         }
         return false;
       } finally {
-        // setIsBusy(false) is handled by storage listener or manual reset if needed,
-        // but requestRefresh is usually called within a flow that manages isBusy.
-        // However, if we want to ensure it turns off if not handled by storage:
-        // Actually, the original code turned off positionsLoading here.
-        // Since isBusy is now shared, we should be careful.
-        // But typically refresh ends with a storage update which turns off isBusy.
-        // If it fails, we might need to turn it off.
-        // Let's leave it to the caller or the catch block for now, or just set it false here if it was only for loading.
-        // The original code set positionsLoading(false) in finally.
-        // We should probably set isBusy(false) here to be safe.
         setIsBusy(false);
       }
     },
@@ -340,7 +328,7 @@ function TidviewPortfolio() {
     setIsBusy(true);
     setLastError("");
     setStatusMessage("Saved. Refreshing...");
-    // setPositionsLoading(true); -> isBusy is already true
+
     try {
       await chrome.storage.sync.set({ wallet: trimmed });
       setWallet(trimmed);
@@ -355,11 +343,6 @@ function TidviewPortfolio() {
       setStatusMessage("");
       setIsBusy(false);
     } finally {
-      // setIsBusy(false); -> handled in catch or by storage update?
-      // Original code had setIsBusy(false) in finally.
-      // But we also want to keep it true if it's still loading?
-      // The original code had setIsBusy(false) AND setPositionsLoading(false) (via requestRefresh finally).
-      // So yes, we should ensure isBusy is false in finally.
       setIsBusy(false);
     }
   }, [wallet, requestRefresh]);
@@ -375,7 +358,7 @@ function TidviewPortfolio() {
     setIsBusy(true);
     setLastError("");
     setStatusMessage("Refreshing...");
-    // setPositionsLoading(true); -> isBusy is already true
+
     try {
       setWallet(trimmed);
       const refreshOk = await requestRefresh({ recordTimestamp: true });
