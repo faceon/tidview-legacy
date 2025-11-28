@@ -398,7 +398,7 @@ function TidviewPortfolio() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-white text-[#111]">
+    <div className="flex flex-col min-h-screen bg-white text-[#111] min-w-[350px]">
       <header className="w-full box-border min-w-[320px] overflow-x-hidden overflow-y-auto leading-[1.4] p-3">
         <nav className="flex items-center justify-between gap-3">
           <figure>
