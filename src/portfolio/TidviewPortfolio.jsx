@@ -88,6 +88,7 @@ function TidviewPortfolio() {
     let touched = false;
     if ("positions" in state) {
       const rawPositions = state.positions;
+
       if (Array.isArray(rawPositions)) {
         const normalized = rawPositions.map((entry) =>
           normalizePosition(entry),
@@ -188,10 +189,6 @@ function TidviewPortfolio() {
   }, [applyPositionsState, updateStatusFromState]);
 
   useEffect(() => {
-    if (!chrome?.storage?.onChanged) {
-      return undefined;
-    }
-
     const handleStorageChange = (changes, areaName) => {
       if (areaName === "sync") {
         let nextLastError = lastErrorRef.current;
@@ -231,12 +228,6 @@ function TidviewPortfolio() {
 
         if ("updatedAt" in changes) {
           const raw = changes.updatedAt.newValue;
-          const parsed = typeof raw === "number" ? raw : null;
-          setUpdatedAt(parsed ?? null);
-          nextUpdatedAt = parsed ?? null;
-          setIsBusy(false);
-        } else if ("valuesUpdatedAt" in changes) {
-          const raw = changes.valuesUpdatedAt.newValue;
           const parsed = typeof raw === "number" ? raw : null;
           setUpdatedAt(parsed ?? null);
           nextUpdatedAt = parsed ?? null;
