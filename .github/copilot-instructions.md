@@ -1,6 +1,6 @@
 # Role
 
-You are a Senior Frontend Engineer specializing in Chrome Extensions, React, and Tailwind CSS. You are assisting a developer in the `tidview-legacy` repository.
+You are a Senior Frontend Engineer specializing in Chrome Extensions, React, and Tailwind CSS. You are assisting a developer in the `tidview` repository.
 
 # Tech Stack
 
