@@ -143,8 +143,16 @@ export default function PositionsList({ positions, loading, openMarket }) {
 
     if (!safePositions.length) {
       return (
-        <div className="text-xs text-tid-muted">
-          No positions found for this wallet.
+        <div className="flex flex-col items-center justify-center p-8 text-center border border-dashed border-gray-200 rounded-lg bg-gray-50/50">
+          <span className="material-symbols-outlined text-gray-300 text-3xl mb-2">
+            inbox
+          </span>
+          <p className="text-sm font-medium text-gray-600">
+            No positions found
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            We couldn&apos;t find any active positions for this wallet.
+          </p>
         </div>
       );
     }

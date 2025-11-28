@@ -9,8 +9,8 @@ import { createRoot } from "react-dom/client";
 import { formatCurrency, formatRefreshAgeLabel } from "../common/format.js";
 import { POSITION } from "../common/schema.js";
 import cfg from "../common/config.js";
-import PositionsList from "./components/PositionsList.jsx";
-import SettingButtons from "./components/SettingButtons.jsx";
+import WalletInputView from "./components/WalletInputView.jsx";
+import PortfolioView from "./components/PortfolioView.jsx";
 
 function normalizePosition(raw) {
   const generatePositionId = (raw) => {
@@ -324,9 +324,16 @@ function TidviewPortfolio() {
       await chrome.storage.sync.set({ wallet: trimmed });
       setWallet(trimmed);
       setHasWallet(true);
+
       const refreshOk = await requestRefresh({ recordTimestamp: true });
       if (refreshOk) {
         setStatusMessage(`Refreshed at ${new Date().toLocaleString()}`);
+        // Explicitly fetch the latest positions to ensure UI update
+        // in case the storage listener didn't fire or was missed.
+        const sessionData = await chrome.storage.session.get("positions");
+        if (sessionData?.positions) {
+          applyPositionsState({ positions: sessionData.positions });
+        }
       }
     } catch (error) {
       console.error("Failed to save wallet", error);
@@ -336,7 +343,7 @@ function TidviewPortfolio() {
     } finally {
       setIsBusy(false);
     }
-  }, [wallet, requestRefresh]);
+  }, [wallet, requestRefresh, applyPositionsState]);
 
   const handleRefresh = useCallback(async () => {
     const trimmed = wallet.trim();
@@ -355,6 +362,11 @@ function TidviewPortfolio() {
       const refreshOk = await requestRefresh({ recordTimestamp: true });
       if (refreshOk) {
         setStatusMessage(`Refreshed at ${new Date().toLocaleString()}`);
+        // Explicitly fetch the latest positions to ensure UI update
+        const sessionData = await chrome.storage.session.get("positions");
+        if (sessionData?.positions) {
+          applyPositionsState({ positions: sessionData.positions });
+        }
       }
     } catch (error) {
       console.error("Failed to refresh balance", error);
@@ -364,7 +376,7 @@ function TidviewPortfolio() {
     } finally {
       setIsBusy(false);
     }
-  }, [wallet, requestRefresh]);
+  }, [wallet, requestRefresh, applyPositionsState]);
 
   const openMarket = useCallback((slug, fallbackSlug) => {
     const finalSlug = slug || fallbackSlug;
@@ -397,128 +409,33 @@ function TidviewPortfolio() {
     [cashValueSafe, positionsValueSafe, totalValue],
   );
 
+  if (!hasWallet) {
+    return (
+      <WalletInputView
+        wallet={wallet}
+        onInput={handleInput}
+        onSave={handleSave}
+        isBusy={isBusy}
+        lastError={lastError}
+      />
+    );
+  }
+
   return (
-    <div className="flex flex-col min-h-screen bg-white text-[#111] min-w-[350px]">
-      <header className="w-full box-border min-w-[320px] overflow-x-hidden overflow-y-auto leading-[1.4] p-3">
-        <nav className="flex items-center justify-between gap-3">
-          <figure>
-            <img src="icons/icon16.png" alt="Tidview Logo" />
-          </figure>
-          <h3 className="text-lg font-semibold">Tidview</h3>
-          <button
-            type="button"
-            className="w-9 h-9 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
-            onClick={() => location.reload()}
-            aria-label="Reload extension"
-          >
-            <span className="material-symbols-outlined text-base">
-              restore_page
-            </span>
-          </button>
-          <button
-            type="button"
-            className="w-9 h-9 rounded-full flex items-center justify-center text-white bg-slate-900 disabled:bg-slate-400"
-            onClick={handleRefresh}
-            disabled={isBusy || !hasWallet}
-            aria-label="Refresh portfolio"
-          >
-            <span className="material-symbols-outlined text-base">sync</span>
-          </button>
-          <span className="w-12 text-right text-xs text-gray-500">
-            {refreshAgeLabel}
-          </span>
-          <SettingButtons
-            wallet={wallet}
-            openInPopup={openInPopup}
-            onModeChange={handleOpenModeChange}
-          />
-        </nav>
-
-        {!hasWallet ? (
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
-            <label className="text-sm text-tid-muted" htmlFor="wallet">
-              Your wallet
-            </label>
-            <input
-              className="border border-gray-200 rounded px-2 py-1 text-sm flex-1 min-w-[200px]"
-              id="wallet"
-              type="text"
-              placeholder="0x...40 hex chars"
-              autoComplete="off"
-              value={wallet}
-              onChange={handleInput}
-            />
-            <button
-              type="button"
-              className="px-2 py-1 rounded bg-slate-200 text-sm"
-              onClick={handleSave}
-              disabled={isBusy}
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              className="px-2 py-1 rounded bg-slate-200 text-sm"
-              onClick={handleRefresh}
-              disabled={isBusy}
-            >
-              Refresh
-            </button>
-          </div>
-        ) : null}
-
-        <div className="flex items-center justify-between gap-3 mt-4 flex-wrap">
-          {lastError ? (
-            <div className="p-3 rounded-md bg-tid-bg-danger text-tid-negative text-xs flex-1">
-              {lastError}
-            </div>
-          ) : null}
-
-          <div className="flex gap-3 border border-gray-200 rounded-md p-3 bg-[#fafafa]">
-            <div className="flex flex-col">
-              <span className="text-xs text-tid-muted">Total</span>
-              <span className="text-base font-semibold text-tid-text">
-                {displayValues.total}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex gap-3 border border-gray-200 rounded-md p-3 bg-[#fafafa]">
-            <div className="flex flex-col">
-              <span className="text-xs text-tid-muted">Positions</span>
-              <span className="text-sm font-semibold text-tid-text">
-                {displayValues.positions}
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xs text-tid-muted">Cash</span>
-              <span className="text-sm font-semibold text-tid-text">
-                {displayValues.cash}
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 px-3">
-        <PositionsList
-          positions={positions}
-          loading={isBusy}
-          openMarket={openMarket}
-        />
-      </main>
-
-      <footer className="p-3 flex flex-col gap-1">
-        {statusMessage ? (
-          <div className="text-xs text-tid-muted">{statusMessage}</div>
-        ) : null}
-        {updatedAt ? (
-          <div className="text-xs text-tid-muted">
-            Positions refreshed: {new Date(updatedAt).toLocaleString()}
-          </div>
-        ) : null}
-      </footer>
-    </div>
+    <PortfolioView
+      displayValues={displayValues}
+      positions={positions}
+      isBusy={isBusy}
+      wallet={wallet}
+      openInPopup={openInPopup}
+      onRefresh={handleRefresh}
+      onModeChange={handleOpenModeChange}
+      openMarket={openMarket}
+      lastError={lastError}
+      statusMessage={statusMessage}
+      refreshAgeLabel={refreshAgeLabel}
+      updatedAt={updatedAt}
+    />
   );
 }
 
